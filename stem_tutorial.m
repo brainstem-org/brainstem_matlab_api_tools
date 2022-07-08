@@ -1,5 +1,5 @@
 % 0. Setup credentials
-stem_set_basic_authorization('username','your_username','password','your_password')
+stem_set_basic_authorization
 
 %% 1. Loading datasets
 
