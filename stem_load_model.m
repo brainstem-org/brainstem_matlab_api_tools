@@ -1,24 +1,69 @@
 function output = stem_load_model(varargin)
 % Load database model from BrainSTEM
 
-p = inputParser;
-addParameter(p,'portal','private',@ischar); % private, public, admin
-addParameter(p,'app','stem',@ischar); % stem, modules, personal_attributes, resources, taxonomies, attributes, users
-addParameter(p,'model','dataset',@ischar); % project, subject, dataset, collection, ...
-addParameter(p,'settings',stem_load_settings,@isstr);
-parse(p,varargin{:})
-parameters = p.Results;
-
 % Example calls:
 % output = stem_load_model('app','stem','model','dataset');
 % output = stem_load_model('app','stem','model','project');
 % output = stem_load_model('app','resources','model','consumable');
 % output = stem_load_model('app','personal_attributes','model','physicalenvironment')
 
-% Settings options
+p = inputParser;
+addParameter(p,'portal','private',@ischar); % private, public, admin
+addParameter(p,'app','',@ischar); % stem, modules, personal_attributes, resources, taxonomies, attributes, users
+addParameter(p,'model','dataset',@ischar); % project, subject, dataset, collection, ...
+addParameter(p,'settings',stem_load_settings,@isstr);
+addParameter(p,'filter',{},@iscell); % Filter parameters
+addParameter(p,'sort',{},@iscell); % Sorting parameters
+addParameter(p,'include',{},@iscell); % Embed relational fields
+parse(p,varargin{:})
+parameters = p.Results;
+
+if isempty(parameters.app)
+    parameters.app = stem_get_app_from_model(parameters.model);
+end
+
+% Setting query parameters
+query_parameters = '';
+
+% Filter query parameters
+if ~isempty(parameters.filter)
+    for i=1:2:floor(numel(parameters.filter)/2)
+        if isempty(query_parameters)
+            prefix = '?';
+        else
+            prefix = '&';            
+        end
+        query_parameters = [query_parameters,prefix,'filter{',parameters.filter{i}, '}=',parameters.filter{i+1}];
+    end
+end
+
+% Sort query parameters
+if ~isempty(parameters.sort)
+    for i=1:numel(parameters.sort)
+        if isempty(query_parameters)
+            prefix = '?';
+        else
+            prefix = '&';            
+        end
+        query_parameters = [query_parameters,prefix,'sort[]=',parameters.sort{i}];
+    end
+end
+
+% Embed relational fields?
+if ~isempty(parameters.include)
+    for i=1:numel(parameters.include)
+        if isempty(query_parameters)
+            prefix = '?';
+        else
+            prefix = '&';            
+        end
+        query_parameters = [query_parameters,prefix,'include[]=',parameters.include{i},'.*'];
+    end
+end
+
+% options
 options = weboptions('HeaderFields',{'Authorization',parameters.settings.credentials});
-% options = weboptions('Username',stem_settings.credentials.username,'Password',stem_settings.credentials.password,'RequestMethod','get','Timeout',50,'ContentType','json','CertificateFilename','default');
-% options = weboptions('HeaderFields',{'Authorization',['Basic ' matlab.net.base64encode([parameters.settings.credentials.username ':' parameters.settings.credentials.password])]});
 
 % Sending request to the REST API
-output = webread([parameters.settings.address,parameters.portal,'/',parameters.app,'/',parameters.model],options,'format','json');
+output = webread([parameters.settings.address,parameters.portal,'/',parameters.app,'/',parameters.model,'/',query_parameters],options,'format','json');
+
