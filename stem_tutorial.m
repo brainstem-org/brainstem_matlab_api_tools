@@ -1,5 +1,7 @@
 % 0. Setup credentials
-stem_set_basic_authorization
+stem_set_basic_authorization 
+% This will show a dialog allowing you to input your username (email) and password
+
 
 %% 1. Loading datasets
 
@@ -23,6 +25,13 @@ output1 = stem_load_model('model','dataset','include',{'projects','experiment_da
 
 dataset = output1.datasets(1);
 dataset.description = 'new description';
+
+% Clearing empty fiels before submitting
+fn = fieldnames(dataset);
+tf = cellfun(@(c) isempty(dataset.(c)), fn);
+dataset = rmfield(dataset, fn(tf));
+
+% Submitting changes to dataset
 output2 = stem_save_model('data',dataset,'model','dataset');
 
 
@@ -30,13 +39,14 @@ output2 = stem_save_model('data',dataset,'model','dataset');
 
 % Defining required fields
 dataset = {};
-dataset.name = 'New dataset85';
+dataset.name = 'New dataset89';
 dataset.description = 'new dataset description';
 dataset.projects = {'0c894095-2d16-4bde-ad50-c33b7680417d'};
 dataset.user = 1; 
 
 % Submitting dataset
 output3 = stem_save_model('data',dataset,'model','dataset');
+
 
 %% 4. Load public projects
 
