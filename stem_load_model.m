@@ -1,5 +1,5 @@
 function output = stem_load_model(varargin)
-% Load database model from BrainSTEM
+% Load model from BrainSTEM
 
 % Example calls:
 % output = stem_load_model('app','stem','model','dataset');
@@ -11,7 +11,7 @@ p = inputParser;
 addParameter(p,'portal','private',@ischar); % private, public, admin
 addParameter(p,'app','',@ischar); % stem, modules, personal_attributes, resources, taxonomies, attributes, users
 addParameter(p,'model','dataset',@ischar); % project, subject, dataset, collection, ...
-addParameter(p,'settings',stem_load_settings,@isstr);
+addParameter(p,'settings',stem_load_settings,@isstruct);
 addParameter(p,'filter',{},@iscell); % Filter parameters
 addParameter(p,'sort',{},@iscell); % Sorting parameters
 addParameter(p,'include',{},@iscell); % Embed relational fields
@@ -33,7 +33,7 @@ if ~isempty(parameters.filter)
         else
             prefix = '&';            
         end
-        query_parameters = [query_parameters,prefix,'filter{',parameters.filter{i}, '}=',parameters.filter{i+1}];
+        query_parameters = [query_parameters,prefix,'filter{',parameters.filter{i}, '}=',urlencode(parameters.filter{i+1})];
     end
 end
 
@@ -61,9 +61,12 @@ if ~isempty(parameters.include)
     end
 end
 
-% options
+% Options
 options = weboptions('HeaderFields',{'Authorization',parameters.settings.credentials});
 
+% Defining the url
+url = [parameters.settings.address,parameters.portal,'/',parameters.app,'/',parameters.model,'/',query_parameters];
+
 % Sending request to the REST API
-output = webread([parameters.settings.address,parameters.portal,'/',parameters.app,'/',parameters.model,'/',query_parameters],options,'format','json');
+output = webread(url,options,'format','json');
 
