@@ -1,17 +1,17 @@
-function output = stem_load_project(varargin)
+function output = load_project(varargin)
 % Load project(s) from BrainSTEM
 
 % Example calls:
-% output = stem_load_project('id','ee57e766-fc0c-42e1-9277-7d40d6e9353a');
-% output = stem_load_project('name','Peters Project');
-% output = stem_load_project('filter',{'id','ee57e766-fc0c-42e1-9277-7d40d6e9353a'});
-% output = stem_load_project('tags','1')
+% output = load_project('id','ee57e766-fc0c-42e1-9277-7d40d6e9353a');
+% output = load_project('name','Peters Project');
+% output = load_project('filter',{'id','ee57e766-fc0c-42e1-9277-7d40d6e9353a'});
+% output = load_project('tags','1')
 
 p = inputParser;
 addParameter(p,'portal','private',@ischar); % private, public, admin
 addParameter(p,'app','stem',@ischar); % stem, modules, personal_attributes, resources, taxonomies, attributes, users
 addParameter(p,'model','project',@isstruct); % project, subject, dataset, collection, ...
-addParameter(p,'settings',stem_load_settings,@isstr);
+addParameter(p,'settings',load_settings,@isstr);
 addParameter(p,'filter',{},@iscell); % Filter parameters
 addParameter(p,'sort',{},@iscell); % Sorting parameters
 addParameter(p,'include',{'datasets','subjects'},@iscell); % Embed relational fields
@@ -49,4 +49,4 @@ for i = 1:length(extra_parameters)
     end
 end
 
-output = stem_load_model('portal',parameters.portal,'app',parameters.app,'model',parameters.model,'settings',parameters.settings,'sort',parameters.sort,'filter',parameters.filter,'include',parameters.include);
+output = load_model('portal',parameters.portal,'app',parameters.app,'model',parameters.model,'settings',parameters.settings,'sort',parameters.sort,'filter',parameters.filter,'include',parameters.include);

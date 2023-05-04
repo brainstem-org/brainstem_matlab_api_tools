@@ -1,4 +1,2 @@
-
-.DS_Store
-stem_credentials_encoded.mat
-stem_credentials.m
+brainstem_credentials_encoded.mat
+brainstem_authentication.mat

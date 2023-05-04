@@ -1,4 +1,4 @@
-function stem_set_basic_authorization(username,password)
+function set_basic_authorization(username,password)
 % Save creditials to a base64encoded char
 switch nargin
     case 0
@@ -19,7 +19,7 @@ end
 credentials = ['Basic ' matlab.net.base64encode([username ':' password])];
 
 % Saving the credentials
-[path1,~,~] = fileparts(which('stem_set_basic_authorization.m'));
-save(fullfile(path1,'stem_credentials_encoded.mat'),'credentials')
+[path1,~,~] = fileparts(which('brainstem_set_basic_authorization.m'));
+save(fullfile(path1,'brainstem_credentials_encoded.mat'),'credentials')
 
-disp('Credentials saved to stem_credentials_encoded.mat')
+disp('Credentials saved to brainstem_credentials_encoded.mat')

@@ -1,17 +1,17 @@
-function output = stem_load_model(varargin)
+function output = load_model(varargin)
 % Load model from BrainSTEM
 
 % Example calls:
-% output = stem_load_model('app','stem','model','dataset');
-% output = stem_load_model('app','stem','model','project');
-% output = stem_load_model('app','resources','model','consumable');
-% output = stem_load_model('app','personal_attributes','model','physicalenvironment')
+% output = load_model('app','stem','model','dataset');
+% output = load_model('app','stem','model','project');
+% output = load_model('app','resources','model','consumable');
+% output = load_model('app','personal_attributes','model','physicalenvironment')
 
 p = inputParser;
 addParameter(p,'portal','private',@ischar); % private, public, admin
 addParameter(p,'app','',@ischar); % stem, modules, personal_attributes, resources, taxonomies, attributes, users
 addParameter(p,'model','dataset',@ischar); % project, subject, dataset, collection, ...
-addParameter(p,'settings',stem_load_settings,@isstruct);
+addParameter(p,'settings',load_settings,@isstruct);
 addParameter(p,'filter',{},@iscell); % Filter parameters
 addParameter(p,'sort',{},@iscell); % Sorting parameters
 addParameter(p,'include',{},@iscell); % Embed relational fields
@@ -19,7 +19,7 @@ parse(p,varargin{:})
 parameters = p.Results;
 
 if isempty(parameters.app)
-    parameters.app = stem_get_app_from_model(parameters.model);
+    parameters.app = get_app_from_model(parameters.model);
 end
 
 % Setting query parameters
@@ -62,11 +62,11 @@ if ~isempty(parameters.include)
 end
 
 % Options
-options = weboptions('HeaderFields',{'Authorization',parameters.settings.credentials});
+options = weboptions('HeaderFields',{'Authorization',['Bearer ' parameters.settings.token]},'ContentType','json','ArrayFormat','json','RequestMethod','get');
 
 % Defining the url
-url = [parameters.settings.address,parameters.portal,'/',parameters.app,'/',parameters.model,'/',query_parameters];
+url = [parameters.settings.address,'api/',parameters.portal,'/',parameters.app,'/',parameters.model,'/',query_parameters];
 
 % Sending request to the REST API
-output = webread(url,options,'format','json');
+output = webread(url,options);
 

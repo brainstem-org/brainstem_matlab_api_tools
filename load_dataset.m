@@ -1,17 +1,17 @@
-function output = stem_load_dataset(varargin)
+function output = load_dataset(varargin)
 % Load dataset(s) from BrainSTEM
 
 % Example calls:
-% output = stem_load_dataset('id','c5547922-c973-4ad7-96d3-72789f140024');
-% output = stem_load_dataset('name','New dataset');
-% output = stem_load_dataset('filter',{'id','c5547922-c973-4ad7-96d3-72789f140024'});
-% output = stem_load_dataset('tags','1')
+% output = load_dataset('id','c5547922-c973-4ad7-96d3-72789f140024');
+% output = load_dataset('name','New dataset');
+% output = load_dataset('filter',{'id','c5547922-c973-4ad7-96d3-72789f140024'});
+% output = load_dataset('tags','1')
 
 p = inputParser;
 addParameter(p,'portal','private',@ischar); % private, public, admin
 addParameter(p,'app','stem',@ischar); % stem, modules, personal_attributes, resources, taxonomies, attributes, users
 addParameter(p,'model','dataset',@isstruct); % project, subject, dataset, collection, ...
-addParameter(p,'settings',stem_load_settings,@isstr);
+addParameter(p,'settings',load_settings,@isstr);
 addParameter(p,'filter',{},@iscell); % Filter parameters
 addParameter(p,'sort',{},@iscell); % Sorting parameters
 addParameter(p,'include',{'experimentdata','behaviors','manipulations','epochs'},@iscell); % Embed relational fields
@@ -48,4 +48,4 @@ for i = 1:length(extra_parameters)
     end
 end
 
-output = stem_load_model('portal',parameters.portal,'app',parameters.app,'model',parameters.model,'settings',parameters.settings,'sort',parameters.sort,'filter',parameters.filter,'include',parameters.include);
+output = load_model('portal',parameters.portal,'app',parameters.app,'model',parameters.model,'settings',parameters.settings,'sort',parameters.sort,'filter',parameters.filter,'include',parameters.include);

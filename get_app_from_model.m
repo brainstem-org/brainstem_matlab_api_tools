@@ -1,4 +1,4 @@
-function app = stem_get_app_from_model(modelname)
+function app = get_app_from_model(modelname)
     
 switch modelname
     case {'project','subject','dataset','collection'}

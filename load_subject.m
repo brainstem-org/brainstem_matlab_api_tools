@@ -1,19 +1,19 @@
-function output = stem_load_subject(varargin)
+function output = load_subject(varargin)
 % Load subject(s) from BrainSTEM
 
 % Example calls:
-% output = stem_load_subject('id','274469ce-ccd1-48b1-8631-0a347cee5728');
-% output = stem_load_subject('name','Peters subject2');
-% output = stem_load_subject('filter',{'id','274469ce-ccd1-48b1-8631-0a347cee5728'});
-% output = stem_load_subject('tags','1');
-% output = stem_load_subject('sex','M'); % M: Male, F: Female, U: Unknown
-% output = stem_load_subject('strain','7d056b05-ff2c-4dda-96f5-e34fe4dc3ac4');
+% output = load_subject('id','274469ce-ccd1-48b1-8631-0a347cee5728');
+% output = load_subject('name','Peters subject2');
+% output = load_subject('filter',{'id','274469ce-ccd1-48b1-8631-0a347cee5728'});
+% output = load_subject('tags','1');
+% output = load_subject('sex','M'); % M: Male, F: Female, U: Unknown
+% output = load_subject('strain','7d056b05-ff2c-4dda-96f5-e34fe4dc3ac4');
 
 p = inputParser;
 addParameter(p,'portal','private',@ischar); % private, public, admin
 addParameter(p,'app','stem',@ischar); % stem, modules, personal_attributes, resources, taxonomies, attributes, users
 addParameter(p,'model','subject',@isstruct); % project, subject, dataset, collection, ...
-addParameter(p,'settings',stem_load_settings,@isstr);
+addParameter(p,'settings',load_settings,@isstr);
 addParameter(p,'filter',{},@iscell); % Filter parameters
 addParameter(p,'sort',{},@iscell); % Sorting parameters
 addParameter(p,'include',{'actions','subjectstatechanges'},@iscell); % Embed relational fields
@@ -51,4 +51,4 @@ for i = 1:length(extra_parameters)
     end
 end
 
-output = stem_load_model('portal',parameters.portal,'app',parameters.app,'model',parameters.model,'settings',parameters.settings,'sort',parameters.sort,'filter',parameters.filter,'include',parameters.include);
+output = load_model('portal',parameters.portal,'app',parameters.app,'model',parameters.model,'settings',parameters.settings,'sort',parameters.sort,'filter',parameters.filter,'include',parameters.include);
