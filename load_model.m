@@ -64,8 +64,8 @@ end
 % Options
 options = weboptions('HeaderFields',{'Authorization',['Bearer ' parameters.settings.token]},'ContentType','json','ArrayFormat','json','RequestMethod','get');
 
-% Defining the url
-url = [parameters.settings.address,'api/',parameters.portal,'/',parameters.app,'/',parameters.model,'/',query_parameters];
+% Defining the endpoint url
+url = [parameters.settings.url,'api/',parameters.portal,'/',parameters.app,'/',parameters.model,'/',query_parameters];
 
 % Sending request to the REST API
 output = webread(url,options);

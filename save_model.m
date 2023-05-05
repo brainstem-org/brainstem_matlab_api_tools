@@ -27,14 +27,14 @@ if isfield(parameters.data,'id')
     % Setting RequestMethod
     options.RequestMethod = 'put';
     
-    % Defining endpoint/url:
-    brainstem_endpoint = [parameters.settings.address,'api/',parameters.portal,'api/',parameters.app,'/',parameters.model,'/',parameters.data.id,'/'];
+    % Defining endpoint url:
+    brainstem_endpoint = [parameters.settings.url,'api/',parameters.portal,'api/',parameters.app,'/',parameters.model,'/',parameters.data.id,'/'];
 else
     % Setting RequestMethod
     options.RequestMethod = 'post';
     
-    % Defining endpoint/url:
-    brainstem_endpoint = [parameters.settings.address,'api/',parameters.portal,'/',parameters.app,'/',parameters.model,'/'];
+    % Defining endpoint url:
+    brainstem_endpoint = [parameters.settings.url,'api/',parameters.portal,'/',parameters.app,'/',parameters.model,'/'];
 end
 
 % Sending request to the REST API

@@ -1,7 +1,8 @@
 % 0. Setup credentials/token. User email and password will be requested to generate the token.
 
-% get token for authentication 
 get_token
+
+% The token is saved to a mat file in the Matlab API tool folder: brainstem_authentication.mat
 
 %% 1. Loading datasets
 

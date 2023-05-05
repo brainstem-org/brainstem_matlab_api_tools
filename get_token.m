@@ -3,13 +3,13 @@ function token = get_token(url,username,password)
 % A post request is send to the token URL
 %
 % Inputs
-% url: address to the server. Default : https://www.brainstem.org/
+% url: url to server. Default : https://www.brainstem.org/
 % username: your username
 % password: your password
 
 switch nargin
     case 0
-        url = 'https://www.brainstem.org/'; % Public server 
+        url = 'https://www.brainstem.org/';
         username = '';
         password = '';
     case 1
@@ -21,12 +21,13 @@ end
 
 % Shows a input dialog if the username and password were not provided as inputs
 if nargin < 3
-    answer = inputdlg({'Username:','Password:'},'BrainSTEM credentials',[1 60],{username,password});
+    answer = inputdlg({'Url:','Username:','Password:'},'BrainSTEM Token',[1 60],{url,username,password});
     if isempty(answer)
         return
     end
-    username = answer{1};
-    password = answer{2};
+    url = answer{1};
+    username = answer{2};
+    password = answer{3};    
 end
 
 % json-encoding the username and password
