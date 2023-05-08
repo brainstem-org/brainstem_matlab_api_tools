@@ -16,7 +16,7 @@ addParameter(p,'filter',{},@iscell); % Filter parameters
 addParameter(p,'sort',{},@iscell); % Sorting parameters
 addParameter(p,'include',{'datasets','subjects'},@iscell); % Embed relational fields
 
-% Dataset fields (extra parameters)
+% Project fields (extra parameters)
 addParameter(p,'id','',@ischar); % id of project
 addParameter(p,'name','',@ischar); % name of project
 addParameter(p,'description','',@ischar); % description of project

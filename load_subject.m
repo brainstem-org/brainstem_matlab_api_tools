@@ -18,7 +18,7 @@ addParameter(p,'filter',{},@iscell); % Filter parameters
 addParameter(p,'sort',{},@iscell); % Sorting parameters
 addParameter(p,'include',{'actions','subjectstatechanges'},@iscell); % Embed relational fields
 
-% Dataset fields (extra parameters)
+% Subject fields (extra parameters)
 addParameter(p,'id','',@ischar); % id of subject
 addParameter(p,'name','',@ischar); % name of subject
 addParameter(p,'description','',@ischar); % description of subject
