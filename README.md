@@ -1,7 +1,7 @@
 # brainstem_matlab_api_tools
 Matlab toolset for interacting with the BrainSTEM API 
 
-Please see the tutorial script (brainstem_api_tutorial.m) for example calls
+Please see the tutorial script `brainstem_api_tutorial.m` for example calls.
 
 # Examples calls
 
@@ -105,5 +105,3 @@ Request the public data by defining the portal to be public
 ```m
 output4 = load_model('model','project','portal','public');
 ```
-
-This tutorial in available as a Matlab script.
