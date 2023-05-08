@@ -1,5 +1,5 @@
-# brainstem_matlab_api_tools
-Matlab toolset for interacting with the BrainSTEM API. Please see the dedicated [documentation of the tool and api](https://brainstem-org.github.io/brainstem_support/api-tools/matlab-api-tool/).
+# Matlab toolset for interacting with the BrainSTEM API
+Please see the dedicated [documentation of the tool and api](https://brainstem-org.github.io/brainstem_support/api-tools/matlab-api-tool/).
 
 Please see the tutorial script `brainstem_api_tutorial.m` for example calls.
 
