@@ -106,4 +106,4 @@ Request the public data by defining the portal to be public
 output4 = load_model('model','project','portal','public');
 ```
 
-This tutorial in also available in the [Matlab API tool Github repository](https://github.com/brainstem-org/brainstem_matlab_api_tools).
+This tutorial in available as a Matlab script.
