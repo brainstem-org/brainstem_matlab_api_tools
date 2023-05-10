@@ -28,7 +28,7 @@ if isfield(parameters.data,'id')
     options.RequestMethod = 'put';
     
     % Defining endpoint url:
-    brainstem_endpoint = [parameters.settings.url,'api/',parameters.portal,'api/',parameters.app,'/',parameters.model,'/',parameters.data.id,'/'];
+    brainstem_endpoint = [parameters.settings.url,'api/',parameters.portal,'/',parameters.app,'/',parameters.model,'/',parameters.data.id,'/'];
 else
     % Setting RequestMethod
     options.RequestMethod = 'post';

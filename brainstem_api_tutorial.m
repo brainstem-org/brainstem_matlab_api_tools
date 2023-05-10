@@ -2,7 +2,7 @@
 
 get_token
 
-% The token is saved to a mat file in the Matlab API tool folder: brainstem_authentication.mat
+% The token is saved to a mat file, brainstem_authentication.mat, in the Matlab API tool folder.
 
 %% 1. Loading datasets
 
@@ -60,9 +60,10 @@ output2 = save_model('data',dataset,'model','dataset');
 
 % We can submit a new entry by defining a dictionary with the required fields.
 dataset = {};
-dataset.name = 'New dataset89';
+dataset.name = 'New dataset 123';
 dataset.description = 'new dataset description';
-dataset.projects = {'0c894095-2d16-4bde-ad50-c33b7680417d'};
+dataset.projects = {'379ce92a-5c58-42dc-bd08-65904602afd6'};
+dataset.tags = [];
 dataset.user = 1; 
 
 % Submitting dataset
@@ -73,3 +74,15 @@ output3 = save_model('data',dataset,'model','dataset');
 
 % Request the public data by defining the portal to be public
 output4 = load_model('model','project','portal','public');
+
+
+%% 5. Convenience functions for projects, subjects, and datasets
+
+% Loading a project by its name
+output5_1 = load_project('name','myproject');
+
+% Loading a subject by its name
+output5_2 = load_subject('name','mysubject');
+
+% Loading a dataset by its name
+output5_3 = load_dataset('name','mydataset');

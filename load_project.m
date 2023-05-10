@@ -14,7 +14,7 @@ addParameter(p,'model','project',@isstruct); % project, subject, dataset, collec
 addParameter(p,'settings',load_settings,@isstr);
 addParameter(p,'filter',{},@iscell); % Filter parameters
 addParameter(p,'sort',{},@iscell); % Sorting parameters
-addParameter(p,'include',{'datasets','subjects'},@iscell); % Embed relational fields
+addParameter(p,'include',{'datasets','subjects','collections'},@iscell); % Embed relational fields
 
 % Project fields (extra parameters)
 addParameter(p,'id','',@ischar); % id of project
