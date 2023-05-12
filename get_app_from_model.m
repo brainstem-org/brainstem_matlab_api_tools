@@ -15,4 +15,8 @@ switch modelname
         app = 'attributes';
     case {'user'}    
         app = 'users';
+    case {'group'}    
+        app = 'auth';
+    otherwise 
+        app = '';
 end
