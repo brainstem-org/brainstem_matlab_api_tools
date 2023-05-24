@@ -21,13 +21,13 @@ end
 
 % Shows a input dialog if the username and password were not provided as inputs
 if nargin < 3
-    answer = inputdlg({'Url:','Username:','Password:'},'BrainSTEM Token',[1 60],{url,username,password});
-    if isempty(answer)
+    answer = passdlg(username);
+    if isempty(answer.User{1}) || isempty(answer.Pass{1})
         return
+    else
+        username = answer.User{1};
+        password = answer.Pass{1};
     end
-    url = answer{1};
-    username = answer{2};
-    password = answer{3};    
 end
 
 % json-encoding the username and password
