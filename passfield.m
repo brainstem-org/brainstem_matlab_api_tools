@@ -40,12 +40,12 @@ classdef passfield < hgsetget
         IsMasked = true;                                    % Password is masked with EchoChar
 %         Interruptible = 'on'
         KeyPressFcn                                         % Key press callback function
-        Password@char                                       % Password string in plain text
+        Password                                       % Password string in plain text
         Position                                            % Size and location of the password field
 %         Selected = 'off'
-        Tag@char                                            % Identifier
-        TooltipString@char                                  % Tooltip text
-        UIContextMenu@matlab.ui.container.ContextMenu       % Context menu associated with the field
+        Tag                                            % Identifier
+        TooltipString                                 % Tooltip text
+        UIContextMenu       % Context menu associated with the field
         Units = 'pixels'                                    % Units of measurement
         UserData                                            % Data associated with the field
         Visible = 'on'                                      % Visibility of the field

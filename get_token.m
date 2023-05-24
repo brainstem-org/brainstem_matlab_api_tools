@@ -1,5 +1,5 @@
 function token = get_token(url,username,password)
-% Get token from server
+% Get token from BrainSTEM server
 % A post request is send to the token URL
 %
 % Inputs

@@ -56,7 +56,7 @@ fh = figure('DockControls'  , 'off',...
     'Position'      , [0, 0, 175 83.6 + offset]);
 
 % Params for resize 
-h.FigMinWidth     = 225;
+h.FigMinWidth     = 250;
 h.FigHeight       = 83.6 + offset;
 h.OkFromRight     = h.FigMinWidth - 59;
 h.CancelFromRight = h.FigMinWidth - 117;
@@ -85,9 +85,8 @@ if hasUsernameField
 end
 
 % Password field
-h.edit{end+1} = passfield('Parent',fh,...
-    'Position'       , [5, 36.6 + offset, 165, 23],...
-    'BackgroundColor', [1,1,1]);
+h.edit{end+1} = passfield('Parent',fh,'Position', [5, 36.6 + offset, 165, 23], 'BackgroundColor', [1,1,1]);
+
 % Password label
 h.labelpass = text('Parent',ah,...
     defaults.TextInfo,...
