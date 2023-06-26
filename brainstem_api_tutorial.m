@@ -64,7 +64,6 @@ dataset.name = 'New dataset 123';
 dataset.description = 'new dataset description';
 dataset.projects = {'379ce92a-5c58-42dc-bd08-65904602afd6'};
 dataset.tags = [];
-dataset.user = 1; 
 
 % Submitting dataset
 output3 = save_model('data',dataset,'model','dataset');
