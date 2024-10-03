@@ -4,7 +4,6 @@ function settings = load_settings
 % url to server
 settings.url = 'https://www.brainstem.org/';
 
-
 % Authentication info
 if exist('brainstem_authentication.mat','file')
     credentials1 = load('brainstem_authentication.mat','authentication');
@@ -18,5 +17,5 @@ else
     settings.token = get_token(settings.url);
 end
 
-% Local repositories
-settings.repositories = brainstem_local_repositories;
+% Local storage
+settings.storage = brainstem_local_storage;

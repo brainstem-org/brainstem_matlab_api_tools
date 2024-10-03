@@ -41,7 +41,7 @@ Loaded models can be sorted by different criteria applying to their fields. In t
 output1_2 = load_model('model','dataset','sort',{'-name'});
 ```
 
-In some cases models contain relations with other models, and they can be also loaded with the models if requested. In this example, all the projects, experiment data, behaviors and  manipulations related to each dataset will be included.
+In some cases models contain relations with other models, and they can be also loaded with the models if requested. In this example, all the projects, experiment data, behaviors, and manipulations related to each dataset will be included.
 
 ```m
 output1_3 = load_model('model','dataset','include',{'projects','experimentdata','behaviors','manipulations'});
@@ -53,10 +53,10 @@ The list of related experiment data can be retrieved from the returned dictionar
 experiment_data = output1_3.experiment_data;
 ```
 
-Get all subjects with related actions and subject state changes
+Get all subjects with related procedures
 
 ```m
-output1_4 = load_model('model','subject','include',{'actions','subjectstatechanges'});
+output1_4 = load_model('model','subject','include',{'procedures'});
 ```
 
 Get all projects with related subjects and datasets

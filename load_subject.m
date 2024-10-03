@@ -16,7 +16,7 @@ addParameter(p,'model','subject',@isstruct); % project, subject, dataset, collec
 addParameter(p,'settings',load_settings,@isstr);
 addParameter(p,'filter',{},@iscell); % Filter parameters
 addParameter(p,'sort',{},@iscell); % Sorting parameters
-addParameter(p,'include',{'actions','subjectstatechanges','subjectlogs'},@iscell); % Embed relational fields
+addParameter(p,'include',{'procedures','subjectlogs'},@iscell); % Embed relational fields
 
 % Subject fields (extra parameters)
 addParameter(p,'id','',@ischar); % id of subject

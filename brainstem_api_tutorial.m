@@ -14,7 +14,7 @@ dataset = output1.datasets(1);
 
 % We can also filter the models by providing cell array with paired filters
 % In this example, it will just load datasets whose name is "yeah".
-output1_1 = load_model('model','dataset','filter',{'name','yeah'});
+output1_1 = load_model('model','dataset','filter',{'name','Peters dataset 2'});
 
 % Loaded models can be sorted by different criteria applying to their fields. 
 % In this example, datasets will be sorted in descending ording according to their name.
@@ -28,8 +28,8 @@ output1_3 = load_model('model','dataset','include',{'projects','experimentdata',
 % The list of related experiment data can be retrived from the returned dictionary.
 experiment_data = output1_3.experiment_data;
 
-% Get all subjects with related actions and subject state changes
-output1_4 = load_model('model','subject','include',{'actions','subjectstatechanges'});
+% Get all subjects with related procedures
+output1_4 = load_model('model','subject','include',{'procedures'});
 
 % Get all projects with related subjects and datasets
 output1_5 = load_model('model','project','include',{'datasets','subjects'});
@@ -60,9 +60,9 @@ output2 = save_model('data',dataset,'model','dataset');
 
 % We can submit a new entry by defining a dictionary with the required fields.
 dataset = {};
-dataset.name = 'New dataset 123';
+dataset.name = 'New dataset 1236567576';
 dataset.description = 'new dataset description';
-dataset.projects = {'379ce92a-5c58-42dc-bd08-65904602afd6'};
+dataset.projects = {'0ed470cf-4b48-49f8-b779-10980a8f9dd6'};
 dataset.tags = [];
 
 % Submitting dataset
@@ -78,10 +78,10 @@ output4 = load_model('model','project','portal','public');
 %% 5. Convenience functions for projects, subjects, and datasets
 
 % Loading a project by its name
-output5_1 = load_project('name','myproject');
+output5_1 = load_project('name','Peters NYU demo project');
 
 % Loading a subject by its name
-output5_2 = load_subject('name','mysubject');
+output5_2 = load_subject('name','Peters subject 2');
 
 % Loading a dataset by its name
 output5_3 = load_dataset('name','mydataset');

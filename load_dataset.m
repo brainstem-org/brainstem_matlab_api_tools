@@ -21,14 +21,14 @@ addParameter(p,'id','',@ischar); % id of dataset
 addParameter(p,'name','',@ischar); % name of dataset
 addParameter(p,'description','',@ischar); % description of dataset
 addParameter(p,'projects','',@ischar); % date and time of dataset
-addParameter(p,'datarepositories','',@ischar); % datarepository of dataset
+addParameter(p,'datastorage','',@ischar); % datastorage of dataset
 addParameter(p,'tags','',@ischar); % tags of dataset (id of tag)
 
 parse(p,varargin{:})
 parameters = p.Results;
 
 % Filter query parameters
-extra_parameters = {'id','name','description','projects','datarepositories','tags'};
+extra_parameters = {'id','name','description','projects','datastorage','tags'};
 for i = 1:length(extra_parameters)
     if ~isempty(parameters.(extra_parameters{i}))
         switch extra_parameters{i}
@@ -38,8 +38,8 @@ for i = 1:length(extra_parameters)
                 parameters.filter = [parameters.filter; {'name.icontains',parameters.(extra_parameters{i})}];
             case 'projects'
                 parameters.filter = [parameters.filter; {'projects.id',parameters.(extra_parameters{i})}];
-            case 'datarepositories'
-                parameters.filter = [parameters.filter; {'datarepositories.id',parameters.(extra_parameters{i})}];
+            case 'datastorage'
+                parameters.filter = [parameters.filter; {'datastorage.id',parameters.(extra_parameters{i})}];
             case 'tags'
                 parameters.filter = [parameters.filter; {'tags',parameters.(extra_parameters{i})}];
             otherwise

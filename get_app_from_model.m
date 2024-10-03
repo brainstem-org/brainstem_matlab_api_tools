@@ -1,11 +1,11 @@
 function app = get_app_from_model(modelname)
     
 switch modelname
-    case {'project','subject','dataset','collection'}
+    case {'project','subject','dataset','collection','cohort'}
         app = 'stem';
-    case {'action','behavior','experimentdata','manipulation','subjectstatechange','actionlog','subjectlog'}
+    case {'procedure','behavior','experimentdata','manipulation','actionlog','subjectlog'}
         app = 'modules';
-    case {'behavioralparadigm','datarepository','physicalenvironment'}    
+    case {'behavioralparadigm','datastorage','physicalenvironment'}    
         app = 'personal_attributes';
     case {'consumable','hardwaredevice','supplier'}    
         app = 'resources';
