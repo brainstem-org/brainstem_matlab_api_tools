@@ -10,9 +10,9 @@ function output = load_subject(varargin)
 % output = load_subject('strain','7d056b05-ff2c-4dda-96f5-e34fe4dc3ac4');
 
 p = inputParser;
-addParameter(p,'portal','private',@ischar); % private, public, admin
-addParameter(p,'app','stem',@ischar); % stem, modules, personal_attributes, resources, taxonomies, attributes, users
-addParameter(p,'model','subject',@isstruct); % project, subject, dataset, collection, ...
+addParameter(p,'portal','private',@ischar); % private, public
+addParameter(p,'app','stem',@ischar); % stem, modules, personal_attributes, resources, taxonomies, dissemination, users
+addParameter(p,'model','subject',@isstruct); % project, subject, session, collection, ...
 addParameter(p,'settings',load_settings,@isstr);
 addParameter(p,'filter',{},@iscell); % Filter parameters
 addParameter(p,'sort',{},@iscell); % Sorting parameters

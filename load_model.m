@@ -2,15 +2,15 @@ function output = load_model(varargin)
 % Load model from BrainSTEM
 
 % Example calls:
-% output = load_model('app','stem','model','dataset');
+% output = load_model('app','stem','model','session');
 % output = load_model('app','stem','model','project');
 % output = load_model('app','resources','model','consumable');
-% output = load_model('app','personal_attributes','model','physicalenvironment')
+% output = load_model('app','personal_attributes','model','setup')
 
 p = inputParser;
-addParameter(p,'portal','private',@ischar); % private, public, admin
-addParameter(p,'app','',@ischar); % stem, modules, personal_attributes, resources, taxonomies, attributes, users
-addParameter(p,'model','dataset',@ischar); % project, subject, dataset, collection, ...
+addParameter(p,'portal','private',@ischar); % private, public
+addParameter(p,'app','',@ischar); % stem, modules, personal_attributes, resources, taxonomies, dissemination, users
+addParameter(p,'model','session',@ischar); % project, subject, session, collection, ...
 addParameter(p,'settings',load_settings,@isstruct);
 addParameter(p,'filter',{},@iscell); % Filter parameters
 addParameter(p,'sort',{},@iscell); % Sorting parameters

@@ -1,28 +1,28 @@
-function output = load_dataset(varargin)
-% Load dataset(s) from BrainSTEM
+function output = load_session(varargin)
+% Load session(s) from BrainSTEM
 
 % Example calls:
-% output = load_dataset('id','c5547922-c973-4ad7-96d3-72789f140024');
-% output = load_dataset('name','New dataset');
-% output = load_dataset('filter',{'id','c5547922-c973-4ad7-96d3-72789f140024'});
-% output = load_dataset('tags','1')
+% output = load_session('id','c5547922-c973-4ad7-96d3-72789f140024');
+% output = load_session('name','New session');
+% output = load_session('filter',{'id','c5547922-c973-4ad7-96d3-72789f140024'});
+% output = load_session('tags','1')
 
 p = inputParser;
 addParameter(p,'portal','private',@ischar); % private, public, admin
-addParameter(p,'app','stem',@ischar); % stem, modules, personal_attributes, resources, taxonomies, attributes, users
-addParameter(p,'model','dataset',@isstruct); % project, subject, dataset, collection, ...
+addParameter(p,'app','stem',@ischar); % stem, modules, personal_attributes, resources, taxonomies, dissemination, users
+addParameter(p,'model','session',@isstruct); % project, subject, session, collection, ...
 addParameter(p,'settings',load_settings,@isstr);
 addParameter(p,'filter',{},@iscell); % Filter parameters
 addParameter(p,'sort',{},@iscell); % Sorting parameters
-addParameter(p,'include',{'experimentdata','behaviors','manipulations','epochs'},@iscell); % Embed relational fields
+addParameter(p,'include',{'dataacquisition','behaviors','manipulations','epochs'},@iscell); % Embed relational fields
 
-% Dataset fields (extra parameters)
-addParameter(p,'id','',@ischar); % id of dataset
-addParameter(p,'name','',@ischar); % name of dataset
-addParameter(p,'description','',@ischar); % description of dataset
-addParameter(p,'projects','',@ischar); % date and time of dataset
-addParameter(p,'datastorage','',@ischar); % datastorage of dataset
-addParameter(p,'tags','',@ischar); % tags of dataset (id of tag)
+% Session fields (extra parameters)
+addParameter(p,'id','',@ischar); % id of session
+addParameter(p,'name','',@ischar); % name of session
+addParameter(p,'description','',@ischar); % description of session
+addParameter(p,'projects','',@ischar); % date and time of session
+addParameter(p,'datastorage','',@ischar); % datastorage of session
+addParameter(p,'tags','',@ischar); % tags of session (id of tag)
 
 parse(p,varargin{:})
 parameters = p.Results;

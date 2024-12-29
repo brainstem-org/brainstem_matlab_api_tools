@@ -2,17 +2,17 @@ function output = save_model(varargin)
 % Save database model to BrainSTEM
 
 % Example calls:
-% output = save_model('data',data,'app','stem','model','dataset');
+% output = save_model('data',data,'app','stem','model','session');
 % output = save_model('data',data,'app','stem','model','project');
 % output = save_model('data',data,'app','resources','model','consumable');
-% output = save_model('data',data,'app','personal_attributes','model','physicalenvironment')
+% output = save_model('data',data,'app','personal_attributes','model','setup')
 
 p = inputParser;
-addParameter(p,'portal','private',@ischar); % private, public, admin
-addParameter(p,'app','',@ischar); % stem, modules, personal_attributes, resources, taxonomies, attributes, users
-addParameter(p,'model','dataset',@ischar); % project, subject, dataset, collection, ...
+addParameter(p,'portal','private',@ischar); % private, public
+addParameter(p,'app','',@ischar); % stem, modules, personal_attributes, resources, taxonomies, dissemination, users
+addParameter(p,'model','session',@ischar); % project, subject, session, collection, ...
 addParameter(p,'settings',load_settings,@isstr);
-addParameter(p,'data',{},@isstruct); % private, public, admin
+addParameter(p,'data',{},@isstruct); % private, public
 parse(p,varargin{:})
 parameters = p.Results;
 

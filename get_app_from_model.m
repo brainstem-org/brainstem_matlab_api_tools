@@ -1,19 +1,19 @@
 function app = get_app_from_model(modelname)
     
 switch modelname
-    case {'project','subject','dataset','collection','cohort'}
+    case {'project','subject','session','collection','cohort'}
         app = 'stem';
-    case {'procedure','behavior','experimentdata','manipulation','actionlog','subjectlog'}
+    case {'procedure','equipment','consumablestock','behavior','dataacquisition','manipulation','procedurelog','subjectlog'}
         app = 'modules';
-    case {'behavioralparadigm','datastorage','physicalenvironment'}    
+    case {'behavioralparadigm','datastorage','setup','inventory'}    
         app = 'personal_attributes';
     case {'consumable','hardwaredevice','supplier'}    
         app = 'resources';
-    case {'brainregion','environmenttype','sensorystimulustype','species','strain'}    
+    case {'brainregion','setuptype','species','strain'}    
         app = 'taxonomies';
-    case {'journal','laboratory','publication'}    
-        app = 'attributes';
-    case {'user'}    
+    case {'journal','publication'}    
+        app = 'dissemination';
+    case {'user','laboratory'}    
         app = 'users';
     case {'group'}    
         app = 'auth';
