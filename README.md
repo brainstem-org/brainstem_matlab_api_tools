@@ -1,107 +1,74 @@
-# Matlab toolset for interacting with the BrainSTEM API
-Please see the dedicated [documentation of the tool and api](https://support.brainstem.org/api-tools/matlab-api-tool/).
+# BrainSTEM MATLAB API Tools
 
-Please see the tutorial script `brainstem_api_tutorial.m` for example calls.
+The `brainstem_matlab_api_tools` is a MATLAB toolset for interacting with the BrainSTEM API, designed for researchers and developers working with neuroscience data.
 
-# Examples calls
+## Installation
+Download the repository and add the folder to your MATLAB path.
 
-### 0. Setup credentials/token: 
+## Getting Started
+To get started, refer to the tutorial script `brainstem_api_tutorial.m` for example usage.
 
-Email and password will be requested
+The tutorial demonstrates how to:
 
-```m
-get_token
-```
+- **Authenticate:** Authentication with your credentials.
+- **Loading Data:** Load sessions and filter data using flexible options.
+- **Updating Entries:** Modify existing models and update them in the database.
+- **Creating Entries:** Submit new data entries with required fields.
+- **Loading Public Data:** Access public projects and data using the public portal.
 
-The token is saved to a mat file (`brainstem_authentication.mat`) in the Matlab API tool folder.
+### Setup Credentials/Token
+Run the `get_token` command. You will be prompted to enter your email and password. The token will be saved in a `.mat` file (`brainstem_authentication.mat`) in the MATLAB API tool folder.
 
-### 1. Loading sessions
+## Core Functions Overview
+The main functions provided by the BrainSTEM MATLAB API tools are:
 
-`load_model` can be used to load any model: We just need to set the name of the model.
+| Function | Description |
+|----------|-------------|
+| `get_token` | Get and save authentication token |
+| `load_model` | Load data from any model |
+| `save_model` | Save data to any model |
+| `load_settings` | Load local settings including API token, server URL, and local storage |
+| `load_project` | Load project(s) with extra filters and relational data options |
+| `load_subject` | Load subject(s) with extra filters and relational data options |
+| `load_session` | Load session(s) with extra filters and relational data options |
+| `brainstem_api_tutorial` | Tutorial script with example calls |
 
-```m
+## Example Usage
+
+### Loading Sessions
+You can load models using `load_model`. Example:
+```matlab
 output1 = load_model('model','session');
-```
-
-We can fetch a single session entry from the loaded models.
-
-```m
 session = output1.sessions(1);
 ```
 
-We can also filter the models by providing cell array with paired filters In this example, it will just load sessions whose name is "yeah".
-
-```m
+### Filtering and Sorting
+You can filter and sort results:
+```matlab
 output1_1 = load_model('model','session','filter',{'name','yeah'});
-```
-
-Loaded models can be sorted by different criteria applying to their fields. In this example, sessions will be sorted in descending ording according to their name.
-
-```m
 output1_2 = load_model('model','session','sort',{'-name'});
 ```
 
-In some cases, models contain relations with other models, and they can be loaded with the models if requested. In this example, all the projects, data acquisition, behaviors, and manipulations related to each session will be included.
-
-```m
+### Including Related Models
+You can load related models as well:
+```matlab
 output1_3 = load_model('model','session','include',{'projects','dataacquisition','behaviors','manipulations'});
-```
-
-The list of related data acquisition can be retrieved from the returned dictionary.
-
-```m
 dataacquisition = output1_3.dataacquisition;
 ```
 
-Get all subjects with related procedures
+### Using Convenience Functions
+For easier access, the API provides convenience functions:
 
-```m
-output1_4 = load_model('model','subject','include',{'procedures'});
+```matlab
+output = load_project('name','myproject');
+output = load_subject('name','mysubject');
+output = load_session('name','mysession');
 ```
+These functions are equivalent to detailed API calls using `load_model` with filters and included relational data.
 
-Get all projects with related subjects and sessions
+## License
+This project is licensed under the MIT License. See the `LICENSE` file for details.
 
-```m
-output1_5 = load_model('model','project','include',{'sessions','subjects'});
-```
+## Contributing
+Contributions are welcome! Feel free to open issues or submit pull requests on GitHub.
 
-All these options can be combined to suit the requirements of the users. For example, we can get only the session that contain the word "Rat" in their name, sorted in descending order by their name and including the related projects.
-
-```m
-output1_6 = load_model('model','session', 'filter',{'name.icontains', 'Rat'}, 'sort',{'-name'}, 'include',{'projects'});
-```
-
-### 2. Updating a session
-
-We can make changes to a model and update it in the database. In this case, we change the description of one of the previously loaded sessions.
-
-```m
-session = output1.sessions(1);
-session.description = 'new description';
-output2 = save_model('data',session,'model','session');
-```
-
-### 3. Creating a new session
-
-We can submit a new entry by defining a struct with the required fields.
-
-```m
-session = {};
-session.name = 'New session85';
-session.description = 'new session description';
-session.projects = {'0c894095-2d16-4bde-ad50-c33b7680417d'};
-```
-
-Submitting session
-
-```m
-output3 = save_model('data',session,'model','session');
-```
-
-### 4. Load public projects
-
-Request the public data by defining the portal to be public
-
-```m
-output4 = load_model('model','project','portal','public');
-```

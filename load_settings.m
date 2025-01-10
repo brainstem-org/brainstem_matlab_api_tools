@@ -3,6 +3,8 @@ function settings = load_settings
 
 % url to server
 settings.url = 'https://www.brainstem.org/';
+% settings.url = 'https://brainstem-development.herokuapp.com/';
+% settings.url = 'http://127.0.0.1:8000/';
 
 % Authentication info
 if exist('brainstem_authentication.mat','file')
