@@ -8,9 +8,9 @@ switch nargin
         password = '';
 end
 
-% Shows a input dialog if the username and password were not provided as inputs
+% Shows a input dialog if the username/email and password were not provided as inputs
 if nargin<2
-    answer = inputdlg({'Username:','Password:'},'BrainSTEM credentials',[1 60],{username,password});
+    answer = inputdlg({'Username/Email:','Password:'},'BrainSTEM credentials',[1 60],{username,password});
     username = answer{1};
     password = answer{2};
 end
