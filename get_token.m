@@ -1,10 +1,10 @@
 function token = get_token(url,username,password)
 % Get token from BrainSTEM server
-% A post request is send to the token URL
+% A post request is sent to the token URL
 %
 % Inputs
-% url: url to server. Default : https://www.brainstem.org/
-% username: your username
+% url: URL to server. Default: https://www.brainstem.org/
+% username: your username/email
 % password: your password
 
 switch nargin
@@ -19,7 +19,7 @@ switch nargin
         password = '';
 end
 
-% Shows a input dialog if the username and password were not provided as inputs
+% Shows an input dialog if the username and password were not provided as inputs
 if nargin < 3
     answer = passdlg(username);
     if isempty(answer.User{1}) || isempty(answer.Pass{1})
