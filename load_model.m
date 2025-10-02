@@ -27,7 +27,7 @@ query_parameters = '';
 
 % Filter query parameters
 if ~isempty(parameters.filter)
-    for i=1:2:floor(numel(parameters.filter)/2)
+    for i=1:2:numel(parameters.filter)
         if isempty(query_parameters)
             prefix = '?';
         else

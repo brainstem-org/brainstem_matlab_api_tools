@@ -49,4 +49,4 @@ authentication = table(tokens,usernames,urls);
 % Saving the token
 [path1,~,~] = fileparts(which('get_token.m'));
 save(fullfile(path1,'brainstem_authentication.mat'),'authentication')
-disp(['Tokens saved to ', path1, '/brainstem_token.mat'])
+disp(['Tokens saved to ', path1, '/brainstem_authentication.mat'])
