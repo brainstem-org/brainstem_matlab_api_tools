@@ -1,8 +1,8 @@
-function output = delete_model(id, model, varargin)
-% DELETE_MODEL  Delete a record from a BrainSTEM API endpoint.
+function output = delete(id, model, varargin)
+% DELETE  Delete a record from a BrainSTEM API endpoint.
 %
-%   output = delete_model(ID, MODEL)
-%   output = delete_model(ID, MODEL, 'portal', 'private', 'settings', settings)
+%   output = delete(ID, MODEL)
+%   output = delete(ID, MODEL, 'portal', 'private', 'settings', settings)
 %
 %   Parameters:
 %     id       - UUID string of the record to delete (required)
@@ -12,17 +12,20 @@ function output = delete_model(id, model, varargin)
 %     settings - Settings struct from load_settings (loaded automatically if omitted)
 %
 %   Example:
-%     delete_model('c5547922-c973-4ad7-96d3-72789f140024', 'session');
+%     brainstem.delete('c5547922-c973-4ad7-96d3-72789f140024', 'session');
 
 p = inputParser;
 addParameter(p,'portal',  'private',    @ischar);
 addParameter(p,'app',     '',           @ischar);
-addParameter(p,'settings',load_settings,@isstruct);
+addParameter(p,'settings',[],           @(x) isempty(x)||isstruct(x));
 parse(p, varargin{:})
 parameters = p.Results;
+if isempty(parameters.settings)
+    parameters.settings = brainstem.load_settings();
+end
 
 if isempty(parameters.app)
-    parameters.app = get_app_from_model(model);
+    parameters.app = brainstem.get_app_from_model(model);
 end
 
 options = weboptions( ...
@@ -40,7 +43,7 @@ catch ME
     if contains(ME.message, '204')
         output = struct('status', 'deleted', 'id', id);
     else
-        error('BrainSTEM:deleteModel', 'API error deleting %s %s: %s', ...
+        error('BrainSTEM:delete', 'API error deleting %s %s: %s', ...
               model, id, brainstem_parse_api_error(ME));
     end
 end

@@ -16,6 +16,16 @@ raw = ME.message;
 % Collapse newlines so the regex can match JSON that spans multiple lines
 raw_clean = regexprep(raw, '\r?\n', ' ');
 
+% Detect MATLAB's standard HTTP error: "status NNN with message "Reason Text""
+% and return a compact "404 Not Found" style string (avoids duplicating the URL).
+http_match = regexp(raw_clean, 'status (\d+) with message "([^"]+)"', 'tokens', 'once');
+if ~isempty(http_match)
+    status_code = http_match{1};
+    reason      = http_match{2};
+    msg = sprintf('%s %s', status_code, reason);
+    return
+end
+
 % Find the outermost JSON object in the message
 json_match = regexp(raw_clean, '\{.+\}', 'match', 'once');
 

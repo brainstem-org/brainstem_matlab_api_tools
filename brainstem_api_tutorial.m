@@ -7,20 +7,14 @@
 %
 %   Option A - Personal Access Token (recommended for scripts / HPC / automation):
 %     Create your token at https://www.brainstem.org/private/users/tokens/
-%     Then either:
-%       setenv('BRAINSTEM_TOKEN','<your_token>')     % set once per MATLAB session
-%       client = BrainstemClient();                  % picks it up automatically
+%     Set it as an environment variable once per MATLAB session:
+%       setenv('BRAINSTEM_TOKEN','<your_token>')
+%       client = BrainstemClient()       % picks it up automatically
 %     Or pass it directly:
 %       client = BrainstemClient('token','<your_token>');
 %
-%   Option B - Short-lived JWT tokens (access: 1 h, refresh: 30 days):
-%     Tokens renew automatically via the refresh endpoint when they expire.
-%     Useful when you cannot store a long-lived PAT.
-%       client = BrainstemClient('token_type', 'shortlived');
-%     To renew manually:  brainstem.refresh_access_token(url, refresh_token)
-%
-%   Option C - Interactive login (GUI dialog, desktop MATLAB only):
-%       client = BrainstemClient();    % opens credential dialog
+%   Option B - Interactive login (device flow, desktop MATLAB only):
+%       client = BrainstemClient();    % opens browser for login
 
 client = BrainstemClient();
 
@@ -41,10 +35,10 @@ output1_1 = client.load_session('name', 'Peters session 2');
 output1_2 = client.load_session('sort', {'-name'});
 
 % Fetch a single session by UUID
-output1_id = client.load_model('session', 'id', 'c5547922-c973-4ad7-96d3-72789f140024');
+output1_id = client.load('session', 'id', 'c5547922-c973-4ad7-96d3-72789f140024');
 
-% Combine filter + sort + include via the generic load_model
-output1_6 = client.load_model('session', ...
+% Combine filter + sort + include via the generic load method
+output1_6 = client.load('session', ...
     'filter',  {'name.icontains', 'Rat'}, ...
     'sort',    {'-name'}, ...
     'include', {'projects'});
@@ -54,12 +48,12 @@ output1_6 = client.load_model('session', ...
 session = output1.sessions(1);
 patch_data.id          = session.id;
 patch_data.description = 'updated description';
-output2 = client.save_model(patch_data, 'session', 'method', 'patch');
+output2 = client.save(patch_data, 'session', 'method', 'patch');
 
 % Full replace (PUT) is still available:
 % session.description = 'new description';
 % session.tags = [];   % tags is required by the API
-% output2_put = client.save_model(session, 'session');
+% output2_put = client.save(session, 'session');
 
 %% 3. Creating a new session
 
@@ -67,15 +61,15 @@ new_session.name        = 'New session 1236567576';
 new_session.description = 'new session description';
 new_session.projects    = {'0ed470cf-4b48-49f8-b779-10980a8f9dd6'};
 new_session.tags        = [];
-output3 = client.save_model(new_session, 'session');
+output3 = client.save(new_session, 'session');
 
 %% 4. Deleting a record
 
-% output_del = client.delete_model(output3.id, 'session');
+% output_del = client.delete(output3.id, 'session');
 
 %% 5. Load public projects
 
-output4 = client.load_model('project', 'portal', 'public');
+output4 = client.load('project', 'portal', 'public');
 
 %% 6. Convenience methods on the client (recommended)
 %
@@ -99,7 +93,7 @@ output5_13 = client.load_consumablestock('subject', '274469ce-ccd1-48b1-8631-0a3
 % The package functions are also available directly when you need them:
 output5_pkg = brainstem.load_session('name', 'mysession');
 
-%% 7. Using load_model directly (for models without a convenience method)
+%% 7. Using load directly (for models without a convenience method)
 
 % Get all subjects with related procedures
 output_subjects = client.load_subject('include', {'procedures'});
@@ -107,8 +101,8 @@ output_subjects = client.load_subject('include', {'procedures'});
 % Get all projects with related subjects and sessions
 output_projects = client.load_project('include', {'sessions','subjects'});
 
-% Get consumable resources (no convenience loader — use load_model directly)
-output_consumables = client.load_model('consumable', 'app', 'resources');
+% Get consumable resources (no convenience loader — use load directly)
+output_consumables = client.load('consumable', 'app', 'resources');
 
 % Paginate manually (first 50, then next 50)
 output_page1 = client.load_session('limit', 50, 'offset', 0);

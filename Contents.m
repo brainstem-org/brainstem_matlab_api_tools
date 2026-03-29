@@ -9,9 +9,9 @@
 %   BrainstemClient                    - Client class (recommended)
 %
 % PACKAGE FUNCTIONS  (call as brainstem.<name> or via client methods)
-%   brainstem.load_model               - Load records from any model
-%   brainstem.save_model               - Create or update records (POST/PUT/PATCH)
-%   brainstem.delete_model             - Delete a record by UUID
+%   brainstem.load                     - Load records from any model
+%   brainstem.save                     - Create or update records (POST/PUT/PATCH)
+%   brainstem.delete                   - Delete a record by UUID
 %   brainstem.get_token                - Acquire and cache an API token ('personal' or 'shortlived')
 %   brainstem.refresh_access_token     - Silently renew a short-lived token pair
 %   brainstem.load_settings            - Load settings struct from token cache

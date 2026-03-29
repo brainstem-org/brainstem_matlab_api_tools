@@ -1,7 +1,7 @@
-function output = load_model(varargin)
-% LOAD_MODEL  Retrieve records from a BrainSTEM API endpoint.
+function output = load(varargin)
+% LOAD  Retrieve records from a BrainSTEM API endpoint.
 %
-%   output = load_model('model', MODEL) returns records for MODEL.
+%   output = load('model', MODEL) returns records for MODEL.
 %
 %   Parameters:
 %     model    - Model name, e.g. 'session', 'project', 'subject'  (default: 'session')
@@ -17,38 +17,48 @@ function output = load_model(varargin)
 %     settings - Settings struct from load_settings (loaded automatically if omitted)
 %
 %   Examples:
-%     output = load_model('model','session');
-%     output = load_model('model','session','id','c5547922-c973-4ad7-96d3-72789f140024');
-%     output = load_model('model','session','filter',{'name.icontains','Rat'},'sort',{'-name'});
-%     output = load_model('model','session','include',{'behaviors','manipulations'});
-%     output = load_model('model','session','load_all',true);
-%     output = load_model('model','project','portal','public');
+%     output = brainstem.load('model','session');
+%     output = brainstem.load('model','session','id','c5547922-c973-4ad7-96d3-72789f140024');
+%     output = brainstem.load('model','session','filter',{'name.icontains','Rat'},'sort',{'-name'});
+%     output = brainstem.load('model','session','include',{'behaviors','manipulations'});
+%     output = brainstem.load('model','session','load_all',true);
+%     output = brainstem.load('model','project','portal','public');
 
 p = inputParser;
 addParameter(p,'portal',  'private', @ischar);
 addParameter(p,'app',     '',        @ischar);
 addParameter(p,'model',   'session', @ischar);
 addParameter(p,'id',      '',        @ischar);
-addParameter(p,'settings',load_settings, @isstruct);
+addParameter(p,'settings',[],        @(x) isempty(x)||isstruct(x));
 addParameter(p,'filter',  {},        @iscell);
 addParameter(p,'sort',    {},        @iscell);
 addParameter(p,'include', {},        @iscell);
-addParameter(p,'limit',   [],        @(x) isnumeric(x) && isscalar(x));
+addParameter(p,'limit',   [],        @(x) isempty(x) || (isnumeric(x) && isscalar(x)));
 addParameter(p,'offset',  0,         @(x) isnumeric(x) && isscalar(x));
 addParameter(p,'load_all',false,     @islogical);
 parse(p, varargin{:})
 parameters = p.Results;
-
-if isempty(parameters.app)
-    parameters.app = get_app_from_model(parameters.model);
+if isempty(parameters.settings)
+    parameters.settings = brainstem.load_settings();
 end
 
-% Auth header
-options = weboptions( ...
-    'HeaderFields', {'Authorization', ['Bearer ' parameters.settings.token]}, ...
-    'ContentType',  'json', ...
-    'ArrayFormat',  'json', ...
-    'RequestMethod','get');
+if isempty(parameters.app)
+    parameters.app = brainstem.get_app_from_model(parameters.model);
+end
+
+% Auth header — omit when token is empty (e.g. public portal requests)
+if isempty(parameters.settings.token)
+    options = weboptions( ...
+        'ContentType',  'json', ...
+        'ArrayFormat',  'json', ...
+        'RequestMethod','get');
+else
+    options = weboptions( ...
+        'HeaderFields', {'Authorization', ['Bearer ' parameters.settings.token]}, ...
+        'ContentType',  'json', ...
+        'ArrayFormat',  'json', ...
+        'RequestMethod','get');
+end
 
 % Single-record fetch by id
 if ~isempty(parameters.id)
@@ -57,7 +67,7 @@ if ~isempty(parameters.id)
     try
         output = webread(url, options);
     catch ME
-        error('BrainSTEM:loadModel', 'API error fetching %s: %s', url, brainstem_parse_api_error(ME));
+        error('BrainSTEM:load', 'API error fetching %s: %s', url, brainstem_parse_api_error(ME));
     end
     return
 end
@@ -70,7 +80,7 @@ url = [brainstem_build_url(parameters.settings.url, parameters.portal, ...
 try
     output = webread(url, options);
 catch ME
-    error('BrainSTEM:loadModel', 'API error fetching %s: %s', url, brainstem_parse_api_error(ME));
+    error('BrainSTEM:load', 'API error fetching %s: %s', url, brainstem_parse_api_error(ME));
 end
 
 % Auto-paginate: keep fetching while there is a 'next' URL
@@ -89,7 +99,7 @@ if parameters.load_all
         try
             next_page = webread(output.next, options);
         catch ME
-            error('BrainSTEM:loadModel', 'API error fetching next page: %s', brainstem_parse_api_error(ME));
+            error('BrainSTEM:load', 'API error fetching next page: %s', brainstem_parse_api_error(ME));
         end
         % Append records
         if ~isempty(model_key) && isfield(output, model_key) && isfield(next_page, model_key)
@@ -102,4 +112,3 @@ if parameters.load_all
         end
     end
 end
-

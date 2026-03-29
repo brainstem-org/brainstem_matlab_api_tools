@@ -13,7 +13,7 @@ p = inputParser;
 addParameter(p,'portal','private',@ischar); % private, public
 addParameter(p,'app','stem',@ischar); % stem, modules, personal_attributes, resources, taxonomies, dissemination, users
 addParameter(p,'model','subject',@ischar); % project, subject, session, collection, ...
-addParameter(p,'settings',load_settings,@isstruct);
+addParameter(p,'settings',[],@(x) isempty(x)||isstruct(x));
 addParameter(p,'filter',{},@iscell); % Filter parameters
 addParameter(p,'sort',{},@iscell); % Sorting parameters
 addParameter(p,'include',{'procedures','subjectlogs'},@iscell); % Embed relational fields
@@ -26,9 +26,13 @@ addParameter(p,'projects','',@ischar); % projects of subject
 addParameter(p,'strain','',@ischar); % strain of subject
 addParameter(p,'sex','',@ischar); % sec of subject
 addParameter(p,'tags','',@ischar); % tags of project (id of tag)
-
-parse(p,varargin{:})
+addParameter(p,'limit',   [],    @(x) isnumeric(x) && isscalar(x));
+addParameter(p,'offset',  0,     @(x) isnumeric(x) && isscalar(x));
+addParameter(p,'load_all',false, @islogical);parse(p,varargin{:})
 parameters = p.Results;
+if isempty(parameters.settings)
+    parameters.settings = brainstem.load_settings();
+end
 
 extra_fields = {'id','name','description','projects','strain','sex','tags'};
 filter_map = {'id',        'id'; ...
@@ -39,6 +43,7 @@ filter_map = {'id',        'id'; ...
               'tags',      'tags'};
 parameters.filter = brainstem_apply_field_filters(parameters, extra_fields, filter_map);
 
-output = load_model('portal',parameters.portal,'app',parameters.app,'model',parameters.model, ...
+output = brainstem.load('portal',parameters.portal,'app',parameters.app,'model',parameters.model, ...
     'settings',parameters.settings,'sort',parameters.sort, ...
-    'filter',parameters.filter,'include',parameters.include);
+    'filter',parameters.filter,'include',parameters.include, ...
+    'limit',parameters.limit,'offset',parameters.offset,'load_all',parameters.load_all);

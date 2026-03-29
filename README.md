@@ -28,20 +28,20 @@ The tutorial demonstrates how to:
 
 ### Recommended: Personal Access Token (scripts, HPC, automation)
 Create a token at [brainstem.org/private/users/tokens/](https://www.brainstem.org/private/users/tokens/).
-Tokens are valid for 1 year and auto-refresh.
+Tokens are valid for 1 year.
 
 ```matlab
 % Option A: environment variable (set once per shell/session)
 setenv('BRAINSTEM_TOKEN','<your_token>')
-client = BrainstemClient();
+client = BrainstemClient();   % picks it up automatically
 
 % Option B: pass directly
 client = BrainstemClient('token','<your_token>');
 ```
 
-### Interactive login (desktop MATLAB, GUI dialog)
+### Interactive login (device flow, desktop MATLAB)
 ```matlab
-client = BrainstemClient();   % opens a credential dialog
+client = BrainstemClient();   % opens browser login page
 ```
 
 ## BrainstemClient (recommended)
@@ -52,15 +52,15 @@ Create the client once; it holds the token and base URL for all subsequent calls
 client = BrainstemClient('token', getenv('BRAINSTEM_TOKEN'));
 
 % Load sessions
-out = client.load_model('session');
+out = client.load('session');
 
 % Partial update
 patch_data.id = out.sessions(1).id;
 patch_data.description = 'updated';
-client.save_model(patch_data, 'session', 'method', 'patch');
+client.save(patch_data, 'session', 'method', 'patch');
 
 % Delete
-client.delete_model(out.sessions(1).id, 'session');
+client.delete(out.sessions(1).id, 'session');
 ```
 
 ## Core Functions Overview
@@ -69,9 +69,9 @@ client.delete_model(out.sessions(1).id, 'session');
 |----------|-------------|
 | `BrainstemClient` | Client class — authenticate once, call any endpoint |
 | `get_token` | Interactively acquire and cache an API token |
-| `load_model` | Load records from any BrainSTEM model |
-| `save_model` | Create or update records (POST / PUT / PATCH) |
-| `delete_model` | Delete a record by UUID |
+| `brainstem.load` | Load records from any BrainSTEM model |
+| `brainstem.save` | Create or update records (POST / PUT / PATCH) |
+| `brainstem.delete` | Delete a record by UUID |
 | `load_settings` | Load settings struct (URL + token) from cache |
 | `get_app_from_model` | Map a model name to its API app prefix |
 
@@ -91,7 +91,7 @@ client.delete_model(out.sessions(1).id, 'session');
 
 ## Query Options
 
-All `load_model` calls (and the convenience loaders) support:
+All `load` calls (and the convenience loaders) support:
 
 | Parameter | Description | Example |
 |-----------|-------------|---------|
@@ -113,34 +113,34 @@ All `load_model` calls (and the convenience loaders) support:
 client = BrainstemClient('token', getenv('BRAINSTEM_TOKEN'));
 
 % Load ALL sessions (auto-paginate)
-out = client.load_model('session', 'load_all', true);
+out = client.load('session', 'load_all', true);
 
 % Filter + sort + include
-out = client.load_model('session', ...
+out = client.load('session', ...
     'filter',  {'name.icontains', 'Rat'}, ...
     'sort',    {'-name'}, ...
     'include', {'projects','behaviors'});
 
 % Single record by UUID
-out = client.load_model('session', 'id', 'c5547922-c973-4ad7-96d3-72789f140024');
+out = client.load('session', 'id', 'c5547922-c973-4ad7-96d3-72789f140024');
 
-% Convenience loader
-sessions = load_session('name', 'mysession');
-behaviors = load_behavior('session', 'c5547922-c973-4ad7-96d3-72789f140024');
+% Convenience loaders (tab-completable, credentials automatic)
+sessions  = client.load_session('name', 'mysession');
+behaviors = client.load_behavior('session', 'c5547922-c973-4ad7-96d3-72789f140024');
 
 % Create
 s.name = 'My new session'; s.projects = {'<proj_uuid>'}; s.tags = [];
-out = client.save_model(s, 'session');
+out = client.save(s, 'session');
 
 % Partial update (PATCH)
 patch.id = out.id; patch.description = 'updated';
-client.save_model(patch, 'session', 'method', 'patch');
+client.save(patch, 'session', 'method', 'patch');
 
 % Delete
-client.delete_model(out.id, 'session');
+client.delete(out.id, 'session');
 
 % Public data
-public_projects = client.load_model('project', 'portal', 'public');
+public_projects = client.load('project', 'portal', 'public');
 ```
 
 ## License

@@ -1,7 +1,7 @@
-function output = save_model(varargin)
-% SAVE_MODEL  Create or update a record in a BrainSTEM API endpoint.
+function output = save(varargin)
+% SAVE  Create or update a record in a BrainSTEM API endpoint.
 %
-%   output = save_model('data', DATA, 'model', MODEL)
+%   output = save('data', DATA, 'model', MODEL)
 %
 %   When DATA contains an 'id' field, an update is performed (PUT or PATCH).
 %   Otherwise a new record is created (POST).
@@ -16,35 +16,38 @@ function output = save_model(varargin)
 %
 %   Examples:
 %     % Update an existing session (full replace):
-%     output = save_model('data', session, 'model', 'session');
+%     output = brainstem.save('data', session, 'model', 'session');
 %
 %     % Partial update (only send changed fields):
-%     output = save_model('data', struct('description','new desc'), ...
-%                         'model','session','method','patch');
+%     output = brainstem.save('data', struct('description','new desc'), ...
+%                             'model','session','method','patch');
 %
 %     % Create a new session:
 %     s.name = 'My session'; s.projects = {'<uuid>'}; s.tags = [];
-%     output = save_model('data', s, 'model', 'session');
+%     output = brainstem.save('data', s, 'model', 'session');
 
 p = inputParser;
 addParameter(p,'portal',  'private',    @ischar);
 addParameter(p,'app',     '',           @ischar);
 addParameter(p,'model',   'session',    @ischar);
-addParameter(p,'settings',load_settings,@isstruct);
+addParameter(p,'settings',[],@(x) isempty(x)||isstruct(x));
 addParameter(p,'data',    struct(),     @isstruct);
 addParameter(p,'method',  'put',        @(x) ismember(lower(x),{'put','patch'}));
 parse(p, varargin{:})
 parameters = p.Results;
+if isempty(parameters.settings)
+    parameters.settings = brainstem.load_settings();
+end
 
 if isempty(parameters.app)
-    parameters.app = get_app_from_model(parameters.model);
+    parameters.app = brainstem.get_app_from_model(parameters.model);
 end
 
 % PATCH without an id in the data makes no sense: there is no record to update.
 if strcmpi(parameters.method, 'patch') && ~isfield(parameters.data, 'id')
-    error('BrainSTEM:saveModel', ...
-        'PATCH requires an ''id'' field in data to identify the record. ' ...
-        'For new records omit the ''method'' parameter (POST is used automatically).');
+    error('BrainSTEM:save', '%s', ...
+        ['PATCH requires an ''id'' field in data to identify the record. ' ...
+         'For new records omit the ''method'' parameter (POST is used automatically).']);
 end
 
 options = weboptions( ...
@@ -76,6 +79,6 @@ catch ME
         return
     end
     api_msg = brainstem_parse_api_error(ME);
-    error('BrainSTEM:saveModel', 'API error saving %s to %s: %s', ...
+    error('BrainSTEM:save', 'API error saving %s to %s: %s', ...
           parameters.model, endpoint, api_msg);
 end

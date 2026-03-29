@@ -17,16 +17,11 @@ classdef BrainstemClient < handle
 %     client = BrainstemClient('url', URL)
 %       Connect to a non-default server (e.g. local dev instance).
 %
-%     client = BrainstemClient('token_type', 'shortlived')
-%       Use short-lived JWT tokens (access: 1 h, refresh: 30 days) instead of
-%       the default personal access token (sliding 1-year window).
-%       Short-lived tokens refresh silently when they expire; only the initial
-%       login requires credentials.  Use 'personal' (default) for scripts.
 %
 %   CORE METHODS
-%     output = client.load_model(model, ...)
-%     output = client.save_model(data, model, ...)
-%     output = client.delete_model(id, model, ...)
+%     output = client.load(model, ...)
+%     output = client.save(data, model, ...)
+%     output = client.delete(id, model, ...)
 %
 %   CONVENIENCE LOADERS  (named shortcuts with pre-set include defaults)
 %     output = client.load_project(...)        'name','id','tags', ...
@@ -43,7 +38,7 @@ classdef BrainstemClient < handle
 %     output = client.load_equipment(...)      'name','session','id','tags'
 %     output = client.load_consumablestock(...)'subject','id','tags'
 %
-%   LOAD_MODEL parameters (all optional after model):
+%   LOAD parameters (all optional after model):
 %     'portal'   - 'private' (default) or 'public'
 %     'id'       - UUID; fetches a single record at /<model>/<id>/
 %     'filter'   - cell array {field, value, ...}
@@ -53,7 +48,7 @@ classdef BrainstemClient < handle
 %     'offset'   - records to skip
 %     'load_all' - true to auto-follow pagination and return all records
 %
-%   SAVE_MODEL parameters (all optional after data and model):
+%   SAVE parameters (all optional after data and model):
 %     'portal'   - 'private' (default) or 'public'
 %     'method'   - 'put' (default, full replace) or 'patch' (partial update)
 %
@@ -62,13 +57,13 @@ classdef BrainstemClient < handle
 %     client = BrainstemClient('token', getenv('BRAINSTEM_TOKEN'));
 %
 %     % Load all sessions (auto-paginate)
-%     out = client.load_model('session', 'load_all', true);
+%     out = client.load('session', 'load_all', true);
 %
 %     % Load a single session by ID
-%     out = client.load_model('session', 'id', 'c5547922-c973-4ad7-96d3-72789f140024');
+%     out = client.load('session', 'id', 'c5547922-c973-4ad7-96d3-72789f140024');
 %
 %     % Filter, sort, embed relations
-%     out = client.load_model('session', ...
+%     out = client.load('session', ...
 %             'filter',  {'name.icontains','Rat'}, ...
 %             'sort',    {'-name'}, ...
 %             'include', {'behaviors','manipulations'});
@@ -76,14 +71,14 @@ classdef BrainstemClient < handle
 %     % Update a session (partial update)
 %     s.id = out.sessions(1).id;
 %     s.description = 'updated';
-%     client.save_model(s, 'session', 'method', 'patch');
+%     client.save(s, 'session', 'method', 'patch');
 %
 %     % Create a new session
 %     s = struct('name','New session','projects',{{'<proj_uuid>'}},'tags',[]);
-%     client.save_model(s, 'session');
+%     client.save(s, 'session');
 %
 %     % Delete a session
-%     client.delete_model(out.sessions(1).id, 'session');
+%     client.delete(out.sessions(1).id, 'session');
 %
 %     % Convenience loaders — field-level parameters, sensible include defaults
 %     out = client.load_session('name', 'mysession');
@@ -92,12 +87,12 @@ classdef BrainstemClient < handle
 %     out = client.load_project('name', 'My Project', 'portal', 'public');
 %
 %     % Load public projects
-%     out = client.load_model('project', 'portal', 'public');
+%     out = client.load('project', 'portal', 'public');
 
     properties (SetAccess = private)
         url        (1,:) char  = 'https://www.brainstem.org/'
         token      (1,:) char  = ''
-        token_type (1,:) char  = 'personal'  % 'personal' or 'shortlived'
+        token_type (1,:) char  = 'personal'
     end
 
     methods
@@ -105,14 +100,11 @@ classdef BrainstemClient < handle
         function obj = BrainstemClient(varargin)
         % BRAINSTEMCLIENT  Constructor.
             p = inputParser;
-            addParameter(p, 'url',        'https://www.brainstem.org/', @ischar);
-            addParameter(p, 'token',      '',                           @ischar);
-            addParameter(p, 'token_type', 'personal', ...
-                @(x) ismember(lower(x), {'personal','shortlived'}));
+            addParameter(p, 'url',   'https://www.brainstem.org/', @ischar);
+            addParameter(p, 'token', '',                           @ischar);
             parse(p, varargin{:});
 
-            obj.url        = p.Results.url;
-            obj.token_type = lower(p.Results.token_type);
+            obj.url = p.Results.url;
 
             if ~isempty(p.Results.token)
                 obj.token = p.Results.token;
@@ -130,17 +122,17 @@ classdef BrainstemClient < handle
         end
 
         % ------------------------------------------------------------------
-        function output = load_model(obj, model, varargin)
-        % LOAD_MODEL  Retrieve records from a BrainSTEM API endpoint.
+        function output = load(obj, model, varargin)
+        % LOAD  Retrieve records from a BrainSTEM API endpoint.
         %   See class documentation for full parameter list.
             try
-                output = brainstem.load_model('model', model, ...
+                output = brainstem.load('model', model, ...
                                     'settings', obj.settings_(), ...
                                     varargin{:});
             catch ME
                 if obj.is_auth_error_(ME)
                     obj.refresh_token_();
-                    output = brainstem.load_model('model', model, ...
+                    output = brainstem.load('model', model, ...
                                         'settings', obj.settings_(), ...
                                         varargin{:});
                 else
@@ -150,17 +142,17 @@ classdef BrainstemClient < handle
         end
 
         % ------------------------------------------------------------------
-        function output = save_model(obj, data, model, varargin)
-        % SAVE_MODEL  Create or update a BrainSTEM record.
+        function output = save(obj, data, model, varargin)
+        % SAVE  Create or update a BrainSTEM record.
         %   See class documentation for full parameter list.
             try
-                output = brainstem.save_model('data', data, 'model', model, ...
+                output = brainstem.save('data', data, 'model', model, ...
                                     'settings', obj.settings_(), ...
                                     varargin{:});
             catch ME
                 if obj.is_auth_error_(ME)
                     obj.refresh_token_();
-                    output = brainstem.save_model('data', data, 'model', model, ...
+                    output = brainstem.save('data', data, 'model', model, ...
                                         'settings', obj.settings_(), ...
                                         varargin{:});
                 else
@@ -170,16 +162,16 @@ classdef BrainstemClient < handle
         end
 
         % ------------------------------------------------------------------
-        function output = delete_model(obj, id, model, varargin)
-        % DELETE_MODEL  Delete a BrainSTEM record by UUID.
+        function output = delete(obj, id, model, varargin)
+        % DELETE  Delete a BrainSTEM record by UUID.
             try
-                output = brainstem.delete_model(id, model, ...
+                output = brainstem.delete(id, model, ...
                                       'settings', obj.settings_(), ...
                                       varargin{:});
             catch ME
                 if obj.is_auth_error_(ME)
                     obj.refresh_token_();
-                    output = brainstem.delete_model(id, model, ...
+                    output = brainstem.delete(id, model, ...
                                           'settings', obj.settings_(), ...
                                           varargin{:});
                 else
@@ -264,18 +256,13 @@ classdef BrainstemClient < handle
         function disp(obj)
         % DISP  Display a compact summary of the client state.
             authenticated = ~isempty(obj.token);
-            fprintf('  BrainstemClient
-');
-            fprintf('    url        : %s
-', obj.url);
-            fprintf('    token_type : %s
-', obj.token_type);
-            fprintf('    authenticated: %s
-', mat2str(authenticated));
+            fprintf('  BrainstemClient\n');
+            fprintf('    url        : %s\n', obj.url);
+            fprintf('    token_type : %s\n', obj.token_type);
+            fprintf('    authenticated: %s\n', mat2str(authenticated));
             if authenticated
                 n = min(8, numel(obj.token));
-                fprintf('    token      : %s...
-', obj.token(1:n));
+                fprintf('    token      : %s...\n', obj.token(1:n));
             end
         end
     end
@@ -291,46 +278,27 @@ classdef BrainstemClient < handle
         end
 
         function token = load_or_request_token_(obj)
-        % Load a cached token for this URL, refreshing proactively when needed.
-        % Short-lived tokens are renewed silently via the refresh endpoint.
-        % Personal tokens warn when expiry is near (< 15 days remaining).
+        % Load a cached PAT for this URL; warn when near expiry, re-auth if expired.
             auth_path = fullfile(prefdir, 'brainstem_authentication.mat');
             if exist(auth_path, 'file')
                 credentials = load(auth_path, 'authentication');
                 auth_tbl    = credentials.authentication;
                 idx         = find(strcmp(obj.url, auth_tbl.urls));
                 if ~isempty(idx)
-                    has_expires = ismember('expires_at',    auth_tbl.Properties.VariableNames);
-                    has_saved   = ismember('saved_at',       auth_tbl.Properties.VariableNames);
-                    has_type    = ismember('token_type',     auth_tbl.Properties.VariableNames);
-                    has_refresh = ismember('refresh_tokens', auth_tbl.Properties.VariableNames);
-
-                    is_short = has_type && strcmp(auth_tbl.token_type{idx}, 'shortlived');
-
+                    has_expires = ismember('expires_at', auth_tbl.Properties.VariableNames);
+                    has_saved   = ismember('saved_at',   auth_tbl.Properties.VariableNames);
                     if has_expires
                         days_left = auth_tbl.expires_at{idx} - now;
                     elseif has_saved
                         days_left = (auth_tbl.saved_at{idx} + 365) - now;
-                        is_short  = false;
                     else
                         days_left = Inf;
                     end
-
                     if days_left <= 0
-                        if is_short && has_refresh && ~isempty(auth_tbl.refresh_tokens{idx})
-                            try
-                                token = brainstem.refresh_access_token( ...
-                                            obj.url, auth_tbl.refresh_tokens{idx});
-                                return
-                            catch
-                                warning('BrainstemClient:refreshFailed', ...
-                                    'Automatic token refresh failed — re-authenticating.');
-                            end
-                        end
                         warning('BrainstemClient:tokenExpired', ...
                             'Saved token expired — re-authenticating.');
-                        token = brainstem.get_token(obj.url, '', '', obj.token_type);
-                    elseif ~is_short && days_left < 15
+                        token = brainstem.get_token(obj.url);
+                    elseif days_left < 15
                         warning('BrainstemClient:tokenNearExpiry', ...
                             'BrainSTEM token expires in ~%.0f days.', days_left);
                         token = auth_tbl.tokens{idx};
@@ -340,37 +308,15 @@ classdef BrainstemClient < handle
                     return
                 end
             end
-            % No cached token — run the interactive login
-            token = brainstem.get_token(obj.url, '', '', obj.token_type);
+            % No cached token — run the device authorization flow
+            token = brainstem.get_token(obj.url);
         end
 
         function refresh_token_(obj)
-        % Re-authenticate and update the stored token.
-        % For short-lived tokens, the /api/auth/token/refresh/ endpoint is
-        % tried first; only falls back to interactive login if it fails or
-        % the refresh token has also expired.
-            auth_path = fullfile(prefdir, 'brainstem_authentication.mat');
-            if exist(auth_path, 'file')
-                credentials = load(auth_path, 'authentication');
-                auth_tbl    = credentials.authentication;
-                idx         = find(strcmp(obj.url, auth_tbl.urls));
-                if ~isempty(idx) && ...
-                   ismember('token_type',     auth_tbl.Properties.VariableNames) && ...
-                   strcmp(auth_tbl.token_type{idx}, 'shortlived') && ...
-                   ismember('refresh_tokens', auth_tbl.Properties.VariableNames) && ...
-                   ~isempty(auth_tbl.refresh_tokens{idx})
-                    try
-                        obj.token = brainstem.refresh_access_token( ...
-                                        obj.url, auth_tbl.refresh_tokens{idx});
-                        return
-                    catch
-                        % Refresh token also expired — fall through to interactive
-                    end
-                end
-            end
+        % Re-authenticate via the device authorization flow.
             warning('BrainstemClient:tokenExpired', ...
                 'Token appears expired or invalid — re-authenticating.');
-            obj.token = brainstem.get_token(obj.url, '', '', obj.token_type);
+            obj.token = brainstem.get_token(obj.url);
         end
 
         function tf = is_auth_error_(~, ME)
