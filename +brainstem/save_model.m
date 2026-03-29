@@ -1,0 +1,81 @@
+function output = save_model(varargin)
+% SAVE_MODEL  Create or update a record in a BrainSTEM API endpoint.
+%
+%   output = save_model('data', DATA, 'model', MODEL)
+%
+%   When DATA contains an 'id' field, an update is performed (PUT or PATCH).
+%   Otherwise a new record is created (POST).
+%
+%   Parameters:
+%     data     - Struct with the record fields to submit (required)
+%     model    - Model name, e.g. 'session', 'project', 'subject'  (default: 'session')
+%     portal   - 'private' (default) or 'public'
+%     app      - App name; auto-detected from model if omitted
+%     method   - 'put' (default, full replace) or 'patch' (partial update)
+%     settings - Settings struct from load_settings (loaded automatically if omitted)
+%
+%   Examples:
+%     % Update an existing session (full replace):
+%     output = save_model('data', session, 'model', 'session');
+%
+%     % Partial update (only send changed fields):
+%     output = save_model('data', struct('description','new desc'), ...
+%                         'model','session','method','patch');
+%
+%     % Create a new session:
+%     s.name = 'My session'; s.projects = {'<uuid>'}; s.tags = [];
+%     output = save_model('data', s, 'model', 'session');
+
+p = inputParser;
+addParameter(p,'portal',  'private',    @ischar);
+addParameter(p,'app',     '',           @ischar);
+addParameter(p,'model',   'session',    @ischar);
+addParameter(p,'settings',load_settings,@isstruct);
+addParameter(p,'data',    struct(),     @isstruct);
+addParameter(p,'method',  'put',        @(x) ismember(lower(x),{'put','patch'}));
+parse(p, varargin{:})
+parameters = p.Results;
+
+if isempty(parameters.app)
+    parameters.app = get_app_from_model(parameters.model);
+end
+
+% PATCH without an id in the data makes no sense: there is no record to update.
+if strcmpi(parameters.method, 'patch') && ~isfield(parameters.data, 'id')
+    error('BrainSTEM:saveModel', ...
+        'PATCH requires an ''id'' field in data to identify the record. ' ...
+        'For new records omit the ''method'' parameter (POST is used automatically).');
+end
+
+options = weboptions( ...
+    'HeaderFields', {'Authorization', ['Bearer ' parameters.settings.token]}, ...
+    'MediaType',    'application/json', ...
+    'ContentType',  'json', ...
+    'ArrayFormat',  'json');
+
+if isfield(parameters.data, 'id')
+    options.RequestMethod = lower(parameters.method);
+    endpoint = brainstem_build_url(parameters.settings.url, parameters.portal, ...
+                                   parameters.app, parameters.model, parameters.data.id);
+else
+    options.RequestMethod = 'post';
+    endpoint = brainstem_build_url(parameters.settings.url, parameters.portal, ...
+                                   parameters.app, parameters.model);
+end
+
+try
+    output = webwrite(endpoint, parameters.data, options);
+    % Normalize an empty response body (some PATCH endpoints return 204 No Content)
+    if isempty(output)
+        output = parameters.data;
+    end
+catch ME
+    % 204 No Content is a valid success response for PATCH
+    if contains(ME.message, '204')
+        output = parameters.data;
+        return
+    end
+    api_msg = brainstem_parse_api_error(ME);
+    error('BrainSTEM:saveModel', 'API error saving %s to %s: %s', ...
+          parameters.model, endpoint, api_msg);
+end
