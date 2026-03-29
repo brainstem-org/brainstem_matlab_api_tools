@@ -2,11 +2,11 @@ function token = get_token(url)
 % GET_TOKEN  Obtain a Personal Access Token from the BrainSTEM server.
 %
 %   Uses the browser-based device authorization flow:
-%     1. POST /api/auth/device/  →  {state, verification_url, expires_in}
-%     2. Opens verification_url in the default browser so the user can log
-%        in (including 2FA if enabled).
-%     3. Polls GET /api/auth/device/token/?state=<key> until the user
-%        completes the web login, then returns the issued token.
+%     1. POST /api/auth/device/  →  {session_id, device_code, verification_uri_complete, expires_in}
+%     2. Opens verification_uri_complete in the default browser so the user
+%        can log in (including 2FA if enabled).
+%     3. Polls POST /api/auth/device/token/ with {device_code} until the
+%        user completes the web login, then returns the issued token.
 %
 %   Fallback: if the server does not support the device flow (older
 %   deployments), the user is prompted to paste a Personal Access Token
@@ -24,12 +24,17 @@ options_post = weboptions( ...
     'ContentType',  'json', ...
     'RequestMethod','post');
 try
-    resp  = webwrite([url 'api/auth/device/'], struct(), options_post);
-    token = device_flow_(url, resp);
+    resp = webwrite([url 'api/auth/device/'], struct(), options_post);
 catch
     % Server does not support device flow — prompt for manual PAT entry
     token = manual_pat_flow_(url);
+    if ~isempty(token)
+        save_token_(url, token);
+    end
+    return
 end
+
+token = device_flow_(url, resp);
 
 if ~isempty(token)
     save_token_(url, token);
@@ -38,45 +43,59 @@ end
 
 % -------------------------------------------------------------------------
 function token = device_flow_(url, resp)
-state      = resp.state;
-auth_url   = resp.verification_url;
-expires_in = 300;
+device_code = resp.device_code;
+auth_url    = resp.verification_uri_complete;
+expires_in  = 300;
 if isfield(resp, 'expires_in'), expires_in = resp.expires_in; end
 
 fprintf('\nAuthenticating with BrainSTEM...\n');
 fprintf('Opening login page in your browser.\n');
 fprintf('If the browser does not open automatically, visit:\n  %s\n\n', auth_url);
 try
-    web(auth_url, '-browser');
+    web(char(auth_url), '-browser');
 catch
     % Headless or web() unavailable — user must open manually
 end
 
 fprintf('Waiting for authentication (timeout: %d s) ...', expires_in);
-options_get = weboptions('ContentType','json','RequestMethod','get');
-poll_url    = [url 'api/auth/device/token/?state=' state];
-deadline    = now + expires_in / 86400;
-token       = '';
+options_poll = weboptions( ...
+    'MediaType',    'application/json', ...
+    'ContentType',  'json', ...
+    'RequestMethod','post');
+poll_url  = [url 'api/auth/device/token/'];
+poll_body = struct('device_code', device_code);
+deadline  = now + expires_in / 86400;
+token     = '';
 while now < deadline
     pause(3);
     fprintf('.');
     try
-        r = webread(poll_url, options_get);
+        r = webwrite(poll_url, poll_body, options_poll);
     catch
         continue
     end
-    if ~isfield(r,'status'), continue; end
-    switch r.status
-        case 'complete'
-            token = r.token;
-            fprintf('\nAuthenticated successfully.\n\n');
-            return
-        case 'expired'
-            fprintf('\n');
-            error('BrainSTEM:deviceAuthExpired', ...
-                'Authentication request expired. Please call get_token() again.');
-        % 'pending' → keep waiting
+    if isfield(r, 'status') && strcmp(r.status, 'success')
+        token = r.token;
+        fprintf('\nAuthenticated successfully.\n\n');
+        return
     end
+    if isfield(r, 'error')
+        switch r.error
+            case 'expired_token'
+                fprintf('\n');
+                error('BrainSTEM:deviceAuthExpired', ...
+                    'Authentication request expired. Please call get_token() again.');
+            case 'access_denied'
+                fprintf('\n');
+                error('BrainSTEM:deviceAuthDenied', ...
+                    'Access denied. Please try again.');
+            otherwise
+                fprintf('\n');
+                error('BrainSTEM:deviceAuthError', ...
+                    'Unexpected error: %s', r.error);
+        end
+    end
+    % authorization_pending → keep waiting
 end
 fprintf('\n');
 error('BrainSTEM:deviceAuthTimeout', ...
