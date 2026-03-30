@@ -10,6 +10,15 @@ function url = brainstem_build_url(base_url, portal, app, model, id)
 %       <base>/api/<portal>/<app>/<model>/
 
 if nargin < 5 || isempty(id)
+    id = '';
+end
+
+% Ensure base_url has exactly one trailing slash
+if isempty(base_url) || base_url(end) ~= '/'
+    base_url = [base_url, '/'];
+end
+
+if isempty(id)
     url = [base_url, 'api/', portal, '/', app, '/', model, '/'];
 else
     url = [base_url, 'api/', portal, '/', app, '/', model, '/', id, '/'];

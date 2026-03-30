@@ -18,6 +18,7 @@
 %   brainstem.save                     - Create or update records (POST/PUT/PATCH)
 %   brainstem.delete                   - Delete a record by UUID
 %   brainstem.get_token                - Acquire and cache an API token via device flow
+%   brainstem.logout                   - Remove the cached token for a server URL
 %   brainstem.get_app_from_model       - Map model name to API app prefix
 %
 % CONVENIENCE LOADERS  (also available as client.<name>() methods)

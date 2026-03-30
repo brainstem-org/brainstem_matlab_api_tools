@@ -16,6 +16,10 @@ classdef BrainstemClient < handle
 %
 %     client = BrainstemClient('url', URL)
 %       Connect to a non-default server (e.g. local dev instance).
+%       The BRAINSTEM_URL environment variable is honoured when 'url' is
+%       not supplied explicitly:
+%         setenv('BRAINSTEM_URL', 'http://localhost:8000/')
+%         client = BrainstemClient()   % uses http://localhost:8000/
 %
 %
 %   CORE METHODS
@@ -99,9 +103,14 @@ classdef BrainstemClient < handle
         % ------------------------------------------------------------------
         function obj = BrainstemClient(varargin)
         % BRAINSTEMCLIENT  Constructor.
+            default_url = getenv('BRAINSTEM_URL');
+            if isempty(default_url)
+                default_url = 'https://www.brainstem.org/';
+            end
+
             p = inputParser;
-            addParameter(p, 'url',   'https://www.brainstem.org/', @ischar);
-            addParameter(p, 'token', '',                           @ischar);
+            addParameter(p, 'url',   default_url, @ischar);
+            addParameter(p, 'token', '',          @ischar);
             parse(p, varargin{:});
 
             obj.url = p.Results.url;

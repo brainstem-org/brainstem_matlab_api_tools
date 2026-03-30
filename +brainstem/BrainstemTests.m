@@ -187,9 +187,9 @@ classdef BrainstemTests < matlab.unittest.TestCase
         end
 
         function testBuildUrlTrailingSlashOnBase(tc)
-            % Base URL without trailing slash should still produce valid URL
+            % Base URL without trailing slash should still produce a fully valid URL
             got = brainstem_build_url('https://www.brainstem.org', 'private', 'stem', 'session', '');
-            tc.verifyTrue(tc.endsWith_(got, 'session/'));
+            tc.verifyEqual(got, 'https://www.brainstem.org/api/private/stem/session/');
         end
 
         % ------------------------------------------------------------------
@@ -205,10 +205,44 @@ classdef BrainstemTests < matlab.unittest.TestCase
             tc.verifyTrue(contains(qs, 'filter{name}=rat'), qs);
         end
 
+        function testQueryStringFilterCharNotCorrupted(tc)
+            % num2str('rat') would give '114 97 116' — verify the actual
+            % string value is encoded, not its ASCII codes.
+            qs = brainstem_build_query_string({'name', 'rat'}, {}, {}, [], 0);
+            tc.verifyTrue(contains(qs, 'rat'),          qs);
+            tc.verifyFalse(contains(qs, '114'),         qs);  % ASCII for 'r'
+        end
+
+        function testQueryStringFilterNumericValue(tc)
+            % Numeric filter values should be converted to their decimal string.
+            qs = brainstem_build_query_string({'count', 5}, {}, {}, [], 0);
+            tc.verifyTrue(contains(qs, 'filter{count}=5'), qs);
+        end
+
         function testQueryStringMultipleFilters(tc)
             qs = brainstem_build_query_string({'name', 'rat', 'sex', 'M'}, {}, {}, [], 0);
             tc.verifyTrue(contains(qs, 'filter{name}=rat'), qs);
             tc.verifyTrue(contains(qs, 'filter{sex}=M'), qs);
+        end
+
+        function testQueryStringFilterNx2Layout(tc)
+            % N×2 cell layout (produced by brainstem_apply_field_filters)
+            filter = {'name.icontains', 'rat'; 'sex', 'M'};
+            qs = brainstem_build_query_string(filter, {}, {}, [], 0);
+            tc.verifyTrue(contains(qs, 'filter{name.icontains}=rat'), qs);
+            tc.verifyTrue(contains(qs, 'filter{sex}=M'),              qs);
+        end
+
+        function testQueryStringFilterNx2KeyValueNotScrambled(tc)
+            % Regression: column-major indexing on N×2 cell used to swap
+            % keys and values when N > 1.
+            filter = {'keyA', 'valA'; 'keyB', 'valB'};
+            qs = brainstem_build_query_string(filter, {}, {}, [], 0);
+            tc.verifyTrue(contains(qs, 'filter{keyA}=valA'), qs);
+            tc.verifyTrue(contains(qs, 'filter{keyB}=valB'), qs);
+            % Ensure values didn't end up as keys
+            tc.verifyFalse(contains(qs, 'filter{valA}'), qs);
+            tc.verifyFalse(contains(qs, 'filter{valB}'), qs);
         end
 
         function testQueryStringSortDescending(tc)
@@ -329,6 +363,30 @@ classdef BrainstemTests < matlab.unittest.TestCase
             tc.verifyEqual(client.url, 'http://localhost:8000/');
         end
 
+        function testClientHonoursBrainstemUrlEnvVar(tc)
+            % BrainstemClient() with no 'url' argument should use BRAINSTEM_URL.
+            prev = getenv('BRAINSTEM_URL');
+            setenv('BRAINSTEM_URL', 'http://env-server.test/');
+            try
+                client = BrainstemClient('token', 'tok');
+                tc.verifyEqual(client.url, 'http://env-server.test/');
+            finally
+                setenv('BRAINSTEM_URL', prev);
+            end
+        end
+
+        function testClientExplicitUrlOverridesEnvVar(tc)
+            % Explicit 'url' argument wins over BRAINSTEM_URL.
+            prev = getenv('BRAINSTEM_URL');
+            setenv('BRAINSTEM_URL', 'http://env-server.test/');
+            try
+                client = BrainstemClient('token', 'tok', 'url', 'http://explicit.test/');
+                tc.verifyEqual(client.url, 'http://explicit.test/');
+            finally
+                setenv('BRAINSTEM_URL', prev);
+            end
+        end
+
         % ------------------------------------------------------------------
         % brainstem_parse_api_error — nested struct body
         % ------------------------------------------------------------------
@@ -345,6 +403,26 @@ classdef BrainstemTests < matlab.unittest.TestCase
             me  = MException('test:err', raw);
             msg = brainstem_parse_api_error(me);
             tc.verifyEqual(msg, raw);
+        end
+
+        function testParseApiErrorHttpStatusWithJsonBody(tc)
+            % A 400 response that contains BOTH the "status NNN" prefix AND a
+            % JSON body should surface the field-level detail, not just "400 Bad Request".
+            me  = MException('test:err', ...
+                'status 400 with message "Bad Request" {"name": ["This field is required."]}');
+            msg = brainstem_parse_api_error(me);
+            tc.verifyTrue(contains(msg, 'name'),                  msg);
+            tc.verifyTrue(contains(msg, 'This field is required.'), msg);
+            % Status code should still appear for context
+            tc.verifyTrue(contains(msg, '400'),                   msg);
+        end
+
+        function testParseApiErrorHttpStatusWithoutBody(tc)
+            % A 404 with no JSON body should return a compact "404 Not Found" string.
+            me  = MException('test:err', 'status 404 with message "Not Found"');
+            msg = brainstem_parse_api_error(me);
+            tc.verifyTrue(contains(msg, '404'),       msg);
+            tc.verifyTrue(contains(msg, 'Not Found'), msg);
         end
 
         % ------------------------------------------------------------------
@@ -377,6 +455,39 @@ classdef BrainstemTests < matlab.unittest.TestCase
                                'model',    'session', ...
                                'method',   'patch', ...
                                'settings', settings), ...
+                'BrainSTEM:save');
+        end
+
+        function testSaveModelPatchWithEmptyIdErrors(tc)
+            % PATCH with an empty id field must also error — empty id is
+            % equivalent to no id (would target the collection endpoint).
+            settings = struct('url', tc.BASE_URL, 'token', 'fake');
+            tc.verifyError( ...
+                @() brainstem.save('data',     struct('id', '', 'description', 'x'), ...
+                               'model',    'session', ...
+                               'method',   'patch', ...
+                               'settings', settings), ...
+                'BrainSTEM:save');
+        end
+
+        function testDeleteEmptyTokenErrors(tc)
+            % delete with an empty token must error before the network call.
+            settings = struct('url', tc.BASE_URL, 'token', '');
+            tc.verifyError( ...
+                @() brainstem.delete( ...
+                    '00000000-0000-0000-0000-000000000000', 'session', ...
+                    'settings', settings), ...
+                'BrainSTEM:delete');
+        end
+
+        function testSaveEmptyTokenErrors(tc)
+            % save with an empty token must error before the network call.
+            settings = struct('url', tc.BASE_URL, 'token', '');
+            tc.verifyError( ...
+                @() brainstem.save( ...
+                    'data',     struct('name', 'x'), ...
+                    'model',    'session', ...
+                    'settings', settings), ...
                 'BrainSTEM:save');
         end
 
@@ -417,6 +528,67 @@ classdef BrainstemTests < matlab.unittest.TestCase
             tc.verifyError( ...
                 @() client.save(struct('description','x'), 'session', 'method','patch'), ...
                 'BrainSTEM:save');
+        end
+
+        % ------------------------------------------------------------------
+        % brainstem.logout
+        % ------------------------------------------------------------------
+        function testLogoutNoFileIsSilent(tc)
+            % logout when no cache file exists should not error
+            tmp = tempname;  % non-existent path
+            % Patch: call logout against a URL that could never be cached
+            tc.verifyWarningFree(@() brainstem.logout('http://nonexistent-brainstem-server.test/'));
+        end
+
+        function testLogoutUnknownUrlIsSilent(tc)
+            % logout for a URL not in the cache should not error
+            tc.verifyWarningFree(@() brainstem.logout('http://not-in-cache.example/'));
+        end
+
+        function testLogoutRemovesToken(tc)
+            % Write a fake cache entry, call logout, verify it is removed.
+            auth_path = fullfile(prefdir, 'brainstem_authentication.mat');
+            test_url  = 'http://brainstem-test-logout.local/';
+
+            % Back up existing cache (if any)
+            backed_up = false;
+            if exist(auth_path, 'file')
+                backup = load(auth_path, 'authentication');
+                backed_up = true;
+            end
+
+            try
+                % Build a minimal authentication table matching the schema
+                % used by brainstem_get_settings / get_token.
+                authentication = table( ...
+                    {test_url},     ...
+                    {'fake-token'}, ...
+                    {datetime('now', 'TimeZone','local') + years(1)}, ...
+                    'VariableNames', {'urls','tokens','expires_at'});
+                save(auth_path, 'authentication');
+
+                brainstem.logout(test_url);
+
+                % Reload and verify the row was removed
+                credentials = load(auth_path, 'authentication');
+                remaining_urls = credentials.authentication.urls;
+                tc.verifyFalse(any(strcmp(test_url, remaining_urls)), ...
+                    'Token should have been removed from cache after logout');
+            finally
+                % Restore original cache (or delete if it didn't exist before)
+                if backed_up
+                    authentication = backup.authentication; %#ok<NASGU>
+                    save(auth_path, 'authentication');
+                elseif exist(auth_path, 'file')
+                    delete(auth_path);
+                end
+            end
+        end
+
+        function testLogoutDefaultUrlUsed(tc)
+            % logout() with no argument should default to BASE_URL without error
+            % (It will find no cached token for the test env, which is fine.)
+            tc.verifyWarningFree(@() brainstem.logout());
         end
 
     end  % offline tests

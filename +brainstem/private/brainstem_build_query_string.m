@@ -14,9 +14,32 @@ function qs = brainstem_build_query_string(filter, sort, include, limit, offset)
 parts = {};
 
 % Filter parameters: filter{field}=value
+%   Accepts two layouts:
+%     N×2 cell  — each row is {key, value}  (produced by brainstem_apply_field_filters)
+%     1×(2N) cell — flat alternating {key, value, key, value, ...}  (user-supplied)
 if ~isempty(filter)
-    for i = 1:2:numel(filter)
-        parts{end+1} = ['filter{', filter{i}, '}=', urlencode(num2str(filter{i+1}))]; %#ok<AGROW>
+    if size(filter, 2) == 2 && size(filter, 1) >= 1 && ~isvector(filter)
+        % N×2 matrix layout
+        for i = 1:size(filter, 1)
+            val = filter{i, 2};
+            if ischar(val) || isstring(val)
+                val_str = char(val);
+            else
+                val_str = num2str(val);
+            end
+            parts{end+1} = ['filter{', filter{i,1}, '}=', urlencode(val_str)]; %#ok<AGROW>
+        end
+    else
+        % Flat 1×(2N) layout
+        for i = 1:2:numel(filter)
+            val = filter{i+1};
+            if ischar(val) || isstring(val)
+                val_str = char(val);
+            else
+                val_str = num2str(val);
+            end
+            parts{end+1} = ['filter{', filter{i}, '}=', urlencode(val_str)]; %#ok<AGROW>
+        end
     end
 end
 

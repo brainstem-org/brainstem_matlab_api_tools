@@ -77,25 +77,32 @@ client.delete(out.sessions(1).id, 'session');
 | Function | Description |
 |----------|-------------|
 | `BrainstemClient` | Client class — authenticate once, call any endpoint |
-| `get_token` | Interactively acquire and cache an API token |
+| `brainstem.get_token` | Interactively acquire and cache an API token |
+| `brainstem.logout` | Remove a cached token for a server URL |
 | `brainstem.load` | Load records from any BrainSTEM model |
 | `brainstem.save` | Create or update records (POST / PUT / PATCH) |
 | `brainstem.delete` | Delete a record by UUID |
-| `get_app_from_model` | Map a model name to its API app prefix |
+| `brainstem.get_app_from_model` | Map a model name to its API app prefix |
 
 ## Convenience Loaders
 
+These functions live in the `+brainstem` package. Call them as `brainstem.<name>(...)` or via the client as `client.<name>(...)`.
+
 | Function | Model | Default includes |
 |----------|-------|-----------------|
-| `load_project` | project | sessions, subjects, collections, cohorts |
-| `load_subject` | subject | procedures, subjectlogs |
-| `load_session` | session | dataacquisition, behaviors, manipulations, epochs |
-| `load_collection` | collection | sessions |
-| `load_cohort` | cohort | subjects |
-| `load_behavior` | behavior (modules) | — |
-| `load_dataacquisition` | dataacquisition (modules) | — |
-| `load_manipulation` | manipulation (modules) | — |
-| `load_procedure` | procedure (modules) | — |
+| `brainstem.load_project` | project | sessions, subjects, collections, cohorts |
+| `brainstem.load_subject` | subject | procedures, subjectlogs |
+| `brainstem.load_session` | session | dataacquisition, behaviors, manipulations, epochs |
+| `brainstem.load_collection` | collection | sessions |
+| `brainstem.load_cohort` | cohort | subjects |
+| `brainstem.load_behavior` | behavior (modules) | — |
+| `brainstem.load_dataacquisition` | dataacquisition (modules) | — |
+| `brainstem.load_manipulation` | manipulation (modules) | — |
+| `brainstem.load_procedure` | procedure (modules) | — |
+| `brainstem.load_procedurelog` | procedurelog (modules) | — |
+| `brainstem.load_subjectlog` | subjectlog (modules) | — |
+| `brainstem.load_equipment` | equipment (modules) | — |
+| `brainstem.load_consumablestock` | consumablestock (modules) | — |
 
 ## Query Options
 

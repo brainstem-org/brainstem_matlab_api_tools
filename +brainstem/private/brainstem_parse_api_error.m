@@ -16,18 +16,13 @@ raw = ME.message;
 % Collapse newlines so the regex can match JSON that spans multiple lines
 raw_clean = regexprep(raw, '\r?\n', ' ');
 
-% Detect MATLAB's standard HTTP error: "status NNN with message "Reason Text""
-% and return a compact "404 Not Found" style string (avoids duplicating the URL).
-http_match = regexp(raw_clean, 'status (\d+) with message "([^"]+)"', 'tokens', 'once');
-if ~isempty(http_match)
-    status_code = http_match{1};
-    reason      = http_match{2};
-    msg = sprintf('%s %s', status_code, reason);
-    return
-end
-
-% Find the outermost JSON object in the message
+% Try to extract and format a JSON validation body first — this gives the
+% most actionable information (field-level errors from DRF).  We do this
+% before the HTTP-status check so that 400 responses with a body like:
+%   "status 400 with message "Bad Request"  {"name":["required"]}"
+% still surface the field-level detail rather than just "400 Bad Request".
 json_match = regexp(raw_clean, '\{.+\}', 'match', 'once');
+json_msg   = '';
 
 if ~isempty(json_match)
     try
@@ -61,11 +56,30 @@ if ~isempty(json_match)
             end
             parts{i} = sprintf('%s: %s', fields{i}, val_str);
         end
-        msg = strjoin(parts, ' | ');
-        return
+        json_msg = strjoin(parts, ' | ');
     catch
-        % JSON parse failed or unexpected structure — fall through
+        % JSON parse failed — fall through
     end
+end
+
+% Extract HTTP status code / reason if present in the message.
+http_match = regexp(raw_clean, 'status (\d+) with message "([^"]+)"', 'tokens', 'once');
+
+if ~isempty(json_msg)
+    % Have parsed JSON details.  Optionally prepend the status code so the
+    % caller still knows which HTTP error triggered this.
+    if ~isempty(http_match)
+        msg = sprintf('%s %s — %s', http_match{1}, http_match{2}, json_msg);
+    else
+        msg = json_msg;
+    end
+    return
+end
+
+if ~isempty(http_match)
+    % No JSON body, but we have the HTTP status.
+    msg = sprintf('%s %s', http_match{1}, http_match{2});
+    return
 end
 
 % Fallback: return the raw message unchanged

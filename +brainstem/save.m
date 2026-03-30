@@ -52,10 +52,16 @@ if isfield(parameters.data, 'id') && ~isempty(parameters.data.id) && ...
 end
 
 % PATCH without an id in the data makes no sense: there is no record to update.
-if strcmpi(parameters.method, 'patch') && ~isfield(parameters.data, 'id')
+has_id = isfield(parameters.data, 'id') && ~isempty(parameters.data.id);
+if strcmpi(parameters.method, 'patch') && ~has_id
     error('BrainSTEM:save', '%s', ...
         ['PATCH requires an ''id'' field in data to identify the record. ' ...
          'For new records omit the ''method'' parameter (POST is used automatically).']);
+end
+
+if isempty(parameters.settings.token)
+    error('BrainSTEM:save', ...
+        'A token is required to save records. Set BRAINSTEM_TOKEN or call brainstem.get_token().');
 end
 
 options = weboptions( ...
@@ -65,7 +71,7 @@ options = weboptions( ...
     'ArrayFormat',  'json', ...
     'Timeout',      30);
 
-if isfield(parameters.data, 'id')
+if has_id
     options.RequestMethod = lower(parameters.method);
     endpoint = brainstem_build_url(parameters.settings.url, parameters.portal, ...
                                    parameters.app, parameters.model, parameters.data.id);
