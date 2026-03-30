@@ -262,6 +262,14 @@ classdef BrainstemClient < handle
         end
 
         % ------------------------------------------------------------------
+        function logout(obj)
+        % LOGOUT  Remove the cached token for this client's URL and clear the
+        %         in-memory token so subsequent calls will re-authenticate.
+            brainstem.logout(obj.url);
+            obj.token = '';
+        end
+
+        % ------------------------------------------------------------------
         function disp(obj)
         % DISP  Display a compact summary of the client state.
             authenticated = ~isempty(obj.token);

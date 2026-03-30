@@ -1,17 +1,27 @@
-function logout(url)
+function logout(varargin)
 % LOGOUT  Remove the cached BrainSTEM token for a given server URL.
 %
-%   brainstem.logout()        removes the token for https://www.brainstem.org/
-%   brainstem.logout(url)     removes the token for the specified server URL
+%   brainstem.logout()                   removes the token for https://www.brainstem.org/
+%   brainstem.logout(url)                positional form
+%   brainstem.logout('url', url)         name-value form
 %
 %   If the BRAINSTEM_TOKEN environment variable is set, it is not modified
 %   here — clear it manually with setenv('BRAINSTEM_TOKEN', '').
 
-if nargin < 1 || isempty(url)
-    url = getenv('BRAINSTEM_URL');
-    if isempty(url)
-        url = 'https://www.brainstem.org/';
-    end
+default_url = getenv('BRAINSTEM_URL');
+if isempty(default_url)
+    default_url = 'https://www.brainstem.org/';
+end
+
+if nargin == 0
+    url = default_url;
+elseif nargin == 1
+    url = char(varargin{1});
+elseif nargin == 2 && strcmpi(varargin{1}, 'url')
+    url = char(varargin{2});
+else
+    error('brainstem:logout:invalidInput', ...
+        'Usage: brainstem.logout() or brainstem.logout(url) or brainstem.logout(''url'', url)');
 end
 
 auth_path = fullfile(prefdir, 'brainstem_authentication.mat');

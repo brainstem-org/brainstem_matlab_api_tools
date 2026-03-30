@@ -124,9 +124,6 @@ end
 function save_token_(url, token)
 auth_path  = fullfile(prefdir, 'brainstem_authentication.mat');
 expires_at = now + 365;   % Personal Access Tokens are valid for ~1 year
-new_row = table({token}, {''}, {url}, {now}, {'personal'}, {''}, {expires_at}, ...
-    'VariableNames', {'tokens','usernames','urls','saved_at', ...
-                      'token_type','refresh_tokens','expires_at'});
 
 if exist(auth_path, 'file')
     existing = load(auth_path, 'authentication');
@@ -138,6 +135,12 @@ if exist(auth_path, 'file')
     if ~ismember('refresh_tokens', tbl.Properties.VariableNames)
         tbl.refresh_tokens = repmat({''},          height(tbl), 1);
     end
+    if ~ismember('usernames',      tbl.Properties.VariableNames)
+        tbl.usernames      = repmat({''},          height(tbl), 1);
+    end
+    if ~ismember('saved_at',       tbl.Properties.VariableNames)
+        tbl.saved_at       = repmat({now},         height(tbl), 1);
+    end
     if ~ismember('expires_at',     tbl.Properties.VariableNames)
         if ismember('saved_at', tbl.Properties.VariableNames)
             tbl.expires_at = cellfun(@(t) t + 365, tbl.saved_at, 'UniformOutput', false);
@@ -145,6 +148,12 @@ if exist(auth_path, 'file')
             tbl.expires_at = repmat({now + 365}, height(tbl), 1);
         end
     end
+    % Reorder tbl to canonical schema, then build new_row explicitly
+    canonical_vars = {'tokens','usernames','urls','saved_at','token_type','refresh_tokens','expires_at'};
+    tbl     = tbl(:, canonical_vars);
+    new_row = table({token}, {''}, {url}, {now}, {'personal'}, {''}, {expires_at}, ...
+        'VariableNames', canonical_vars);
+
     idx = find(strcmp(url, tbl.urls));
     if ~isempty(idx)
         tbl.tokens{idx}         = token;
@@ -158,9 +167,12 @@ if exist(auth_path, 'file')
         authentication = [tbl; new_row]; %#ok<NASGU>
     end
 else
+    new_row = table({token}, {''}, {url}, {now}, {'personal'}, {''}, {expires_at}, ...
+        'VariableNames', {'tokens','usernames','urls','saved_at', ...
+                          'token_type','refresh_tokens','expires_at'});
     authentication = new_row; %#ok<NASGU>
 end
 
 save(auth_path, 'authentication');
-fprintf('Token saved.\n');
+fprintf('Token saved to %s\n', auth_path);
 end
