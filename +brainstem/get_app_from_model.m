@@ -16,7 +16,9 @@ switch modelname
         app = 'dissemination';
     case {'user','laboratory','groupmembershipinvitation','groupmembershiprequest'}    
         app = 'users';
-    case {'group'}    
+    case {'group'}
+        % Groups live under the 'auth' app namespace in the API URL, even
+        % though they are documented under the Users section of the API docs.
         app = 'auth';
     otherwise 
         app = '';

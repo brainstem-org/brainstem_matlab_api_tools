@@ -14,11 +14,11 @@ function output = load(varargin)
 %     limit    - Max records per page (API default: 20, max: 100)
 %     offset   - Records to skip (for manual paging)
 %     load_all - true to auto-follow pagination and return all records (default: false)
-%     settings - Settings struct from load_settings (loaded automatically if omitted)
+%     settings - Settings struct (auto-resolved from BRAINSTEM_TOKEN env var or token cache)
 %
 %   Examples:
 %     output = brainstem.load('model','session');
-%     output = brainstem.load('model','session','id','c5547922-c973-4ad7-96d3-72789f140024');
+%     output = brainstem.load('model','session','id','<session_uuid>');
 %     output = brainstem.load('model','session','filter',{'name.icontains','Rat'},'sort',{'-name'});
 %     output = brainstem.load('model','session','include',{'behaviors','manipulations'});
 %     output = brainstem.load('model','session','load_all',true);
@@ -39,7 +39,14 @@ addParameter(p,'load_all',false,     @islogical);
 parse(p, varargin{:})
 parameters = p.Results;
 if isempty(parameters.settings)
-    parameters.settings = brainstem.load_settings();
+    parameters.settings = brainstem_get_settings();
+end
+
+% Validate UUID format when an id is supplied
+if ~isempty(parameters.id) && isempty(regexp(parameters.id, ...
+        '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$', 'once'))
+    error('BrainSTEM:load', ...
+        'id must be a valid UUID (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx), got: %s', parameters.id);
 end
 
 if isempty(parameters.app)
@@ -51,12 +58,14 @@ if isempty(parameters.settings.token)
     options = weboptions( ...
         'ContentType',  'json', ...
         'ArrayFormat',  'json', ...
+        'Timeout',      30, ...
         'RequestMethod','get');
 else
     options = weboptions( ...
         'HeaderFields', {'Authorization', ['Bearer ' parameters.settings.token]}, ...
         'ContentType',  'json', ...
         'ArrayFormat',  'json', ...
+        'Timeout',      30, ...
         'RequestMethod','get');
 end
 
@@ -82,6 +91,7 @@ try
 catch ME
     error('BrainSTEM:load', 'API error fetching %s: %s', url, brainstem_parse_api_error(ME));
 end
+output = brainstem_normalize_list_response(output);
 
 % Auto-paginate: keep fetching while there is a 'next' URL
 if parameters.load_all
@@ -101,6 +111,7 @@ if parameters.load_all
         catch ME
             error('BrainSTEM:load', 'API error fetching next page: %s', brainstem_parse_api_error(ME));
         end
+        next_page = brainstem_normalize_list_response(next_page);
         % Append records
         if ~isempty(model_key) && isfield(output, model_key) && isfield(next_page, model_key)
             output.(model_key) = [output.(model_key), next_page.(model_key)];

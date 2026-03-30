@@ -31,13 +31,22 @@ Create a token at [brainstem.org/private/users/tokens/](https://www.brainstem.or
 Tokens are valid for 1 year.
 
 ```matlab
-% Option A: environment variable (set once per shell/session)
+% Option A: environment variable (set once per shell/session, or in .env / bashrc)
 setenv('BRAINSTEM_TOKEN','<your_token>')
 client = BrainstemClient();   % picks it up automatically
 
 % Option B: pass directly
 client = BrainstemClient('token','<your_token>');
 ```
+
+> **Custom server URL** (local dev, staging):
+> ```matlab
+> setenv('BRAINSTEM_URL', 'http://localhost:8000/')
+> client = BrainstemClient();   % uses the URL from the env var
+> % or pass explicitly:
+> client = BrainstemClient('url','http://localhost:8000/', 'token','<your_token>');
+> ```
+> The standalone `brainstem.*` functions also honour `BRAINSTEM_URL`.
 
 ### Interactive login (device flow, desktop MATLAB)
 ```matlab
@@ -72,7 +81,6 @@ client.delete(out.sessions(1).id, 'session');
 | `brainstem.load` | Load records from any BrainSTEM model |
 | `brainstem.save` | Create or update records (POST / PUT / PATCH) |
 | `brainstem.delete` | Delete a record by UUID |
-| `load_settings` | Load settings struct (URL + token) from cache |
 | `get_app_from_model` | Map a model name to its API app prefix |
 
 ## Convenience Loaders
@@ -122,11 +130,11 @@ out = client.load('session', ...
     'include', {'projects','behaviors'});
 
 % Single record by UUID
-out = client.load('session', 'id', 'c5547922-c973-4ad7-96d3-72789f140024');
+out = client.load('session', 'id', '<session_uuid>');
 
 % Convenience loaders (tab-completable, credentials automatic)
 sessions  = client.load_session('name', 'mysession');
-behaviors = client.load_behavior('session', 'c5547922-c973-4ad7-96d3-72789f140024');
+behaviors = client.load_behavior('session', '<session_uuid>');
 
 % Create
 s.name = 'My new session'; s.projects = {'<proj_uuid>'}; s.tags = [];

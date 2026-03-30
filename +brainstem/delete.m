@@ -9,10 +9,10 @@ function output = delete(id, model, varargin)
 %     model    - Model name, e.g. 'session', 'project', 'subject' (required)
 %     portal   - 'private' (default) or 'public'
 %     app      - App name; auto-detected from model if omitted
-%     settings - Settings struct from load_settings (loaded automatically if omitted)
+%     settings - Settings struct (auto-resolved from BRAINSTEM_TOKEN env var or token cache)
 %
 %   Example:
-%     brainstem.delete('c5547922-c973-4ad7-96d3-72789f140024', 'session');
+%     brainstem.delete('<session_uuid>', 'session');
 
 p = inputParser;
 addParameter(p,'portal',  'private',    @ischar);
@@ -21,7 +21,16 @@ addParameter(p,'settings',[],           @(x) isempty(x)||isstruct(x));
 parse(p, varargin{:})
 parameters = p.Results;
 if isempty(parameters.settings)
-    parameters.settings = brainstem.load_settings();
+    parameters.settings = brainstem_get_settings();
+end
+
+% Guard against deleting the collection endpoint by accident
+if isempty(id)
+    error('BrainSTEM:delete', 'id must be a non-empty UUID string.');
+end
+if isempty(regexp(id, '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$', 'once'))
+    error('BrainSTEM:delete', ...
+        'id must be a valid UUID (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx), got: %s', id);
 end
 
 if isempty(parameters.app)
@@ -31,6 +40,7 @@ end
 options = weboptions( ...
     'HeaderFields', {'Authorization', ['Bearer ' parameters.settings.token]}, ...
     'ContentType',  'json', ...
+    'Timeout',      30, ...
     'RequestMethod','delete');
 
 endpoint = brainstem_build_url(parameters.settings.url, parameters.portal, ...

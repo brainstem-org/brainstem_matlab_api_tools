@@ -427,7 +427,7 @@ classdef BrainstemTests < matlab.unittest.TestCase
     % ======================================================================
 
         function testLoadPublicProjects(tc)
-            settings = struct('url', tc.BASE_URL, 'token', '', 'storage', {{}});
+            settings = struct('url', tc.BASE_URL, 'token', '');
             out = brainstem.load('model', 'project', 'portal', 'public', ...
                              'settings', settings, 'limit', 5);
             tc.verifyTrue(isstruct(out));
@@ -436,7 +436,7 @@ classdef BrainstemTests < matlab.unittest.TestCase
         end
 
         function testLoadPublicProjectsStructure(tc)
-            settings = struct('url', tc.BASE_URL, 'token', '', 'storage', {{}});
+            settings = struct('url', tc.BASE_URL, 'token', '');
             out = brainstem.load('model', 'project', 'portal', 'public', ...
                              'settings', settings, 'limit', 1);
             if isfield(out, 'projects') && ~isempty(out.projects)
@@ -458,7 +458,7 @@ classdef BrainstemTests < matlab.unittest.TestCase
         function testLoadSessions(tc)
             tc.assumeNotEmpty(tc.TOKEN, ...
                 'Set BRAINSTEM_TOKEN env variable to run authenticated tests');
-            settings = struct('url', tc.BASE_URL, 'token', tc.TOKEN, 'storage', {{}});
+            settings = struct('url', tc.BASE_URL, 'token', tc.TOKEN);
             out = brainstem.load('model', 'session', 'settings', settings, 'limit', 5);
             tc.verifyTrue(isstruct(out));
             tc.verifyTrue(isfield(out, 'sessions') || isfield(out, 'count'));
@@ -467,7 +467,7 @@ classdef BrainstemTests < matlab.unittest.TestCase
         function testLoadSubjects(tc)
             tc.assumeNotEmpty(tc.TOKEN, ...
                 'Set BRAINSTEM_TOKEN env variable to run authenticated tests');
-            settings = struct('url', tc.BASE_URL, 'token', tc.TOKEN, 'storage', {{}});
+            settings = struct('url', tc.BASE_URL, 'token', tc.TOKEN);
             out = brainstem.load('model', 'subject', 'settings', settings, 'limit', 5);
             tc.verifyTrue(isstruct(out));
         end
@@ -475,7 +475,7 @@ classdef BrainstemTests < matlab.unittest.TestCase
         function testLoadProjects(tc)
             tc.assumeNotEmpty(tc.TOKEN, ...
                 'Set BRAINSTEM_TOKEN env variable to run authenticated tests');
-            settings = struct('url', tc.BASE_URL, 'token', tc.TOKEN, 'storage', {{}});
+            settings = struct('url', tc.BASE_URL, 'token', tc.TOKEN);
             out = brainstem.load('model', 'project', 'settings', settings, 'limit', 5);
             tc.verifyTrue(isstruct(out));
         end
@@ -483,7 +483,7 @@ classdef BrainstemTests < matlab.unittest.TestCase
         function testLoadModelById(tc)
             tc.assumeNotEmpty(tc.TOKEN, ...
                 'Set BRAINSTEM_TOKEN env variable to run authenticated tests');
-            settings = struct('url', tc.BASE_URL, 'token', tc.TOKEN, 'storage', {{}});
+            settings = struct('url', tc.BASE_URL, 'token', tc.TOKEN);
             % First fetch a list to get a real id
             out = brainstem.load('model', 'project', 'settings', settings, 'limit', 1);
             if isfield(out, 'projects') && ~isempty(out.projects)
@@ -499,7 +499,7 @@ classdef BrainstemTests < matlab.unittest.TestCase
         function testLoadModelPagination(tc)
             tc.assumeNotEmpty(tc.TOKEN, ...
                 'Set BRAINSTEM_TOKEN env variable to run authenticated tests');
-            settings = struct('url', tc.BASE_URL, 'token', tc.TOKEN, 'storage', {{}});
+            settings = struct('url', tc.BASE_URL, 'token', tc.TOKEN);
             out = brainstem.load('model', 'session', 'settings', settings, ...
                              'limit', 2, 'offset', 0);
             tc.verifyTrue(isstruct(out));

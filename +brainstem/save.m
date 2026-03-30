@@ -12,7 +12,7 @@ function output = save(varargin)
 %     portal   - 'private' (default) or 'public'
 %     app      - App name; auto-detected from model if omitted
 %     method   - 'put' (default, full replace) or 'patch' (partial update)
-%     settings - Settings struct from load_settings (loaded automatically if omitted)
+%     settings - Settings struct (auto-resolved from BRAINSTEM_TOKEN env var or token cache)
 %
 %   Examples:
 %     % Update an existing session (full replace):
@@ -36,11 +36,19 @@ addParameter(p,'method',  'put',        @(x) ismember(lower(x),{'put','patch'}))
 parse(p, varargin{:})
 parameters = p.Results;
 if isempty(parameters.settings)
-    parameters.settings = brainstem.load_settings();
+    parameters.settings = brainstem_get_settings();
 end
 
 if isempty(parameters.app)
     parameters.app = brainstem.get_app_from_model(parameters.model);
+end
+
+% Validate UUID format when an id is present in data
+if isfield(parameters.data, 'id') && ~isempty(parameters.data.id) && ...
+        isempty(regexp(parameters.data.id, ...
+        '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$', 'once'))
+    error('BrainSTEM:save', ...
+        'data.id must be a valid UUID (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx), got: %s', parameters.data.id);
 end
 
 % PATCH without an id in the data makes no sense: there is no record to update.
@@ -54,7 +62,8 @@ options = weboptions( ...
     'HeaderFields', {'Authorization', ['Bearer ' parameters.settings.token]}, ...
     'MediaType',    'application/json', ...
     'ContentType',  'json', ...
-    'ArrayFormat',  'json');
+    'ArrayFormat',  'json', ...
+    'Timeout',      30);
 
 if isfield(parameters.data, 'id')
     options.RequestMethod = lower(parameters.method);

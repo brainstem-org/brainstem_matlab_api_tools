@@ -60,7 +60,7 @@ classdef BrainstemClient < handle
 %     out = client.load('session', 'load_all', true);
 %
 %     % Load a single session by ID
-%     out = client.load('session', 'id', 'c5547922-c973-4ad7-96d3-72789f140024');
+%     out = client.load('session', 'id', '<session_uuid>');
 %
 %     % Filter, sort, embed relations
 %     out = client.load('session', ...
@@ -272,9 +272,8 @@ classdef BrainstemClient < handle
 
         function s = settings_(obj)
         % Build the settings struct expected by the underlying functions.
-            s.url     = obj.url;
-            s.token   = obj.token;
-            s.storage = {};
+            s.url   = obj.url;
+            s.token = obj.token;
         end
 
         function token = load_or_request_token_(obj)
