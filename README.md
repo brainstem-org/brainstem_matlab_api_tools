@@ -3,68 +3,160 @@
 The `brainstem_matlab_api_tools` is a MATLAB toolset for interacting with the BrainSTEM API, designed for researchers and developers working with neuroscience data.
 
 ## Installation
-Download the repository and add the folder to your MATLAB path.
+Download the repository and add the **root folder** to your MATLAB path:
+
+```matlab
+addpath('/path/to/brainstem_matlab_api_tools')
+```
+
+> Only the root needs to be added. MATLAB automatically discovers the `+brainstem` package folder and the `BrainstemClient` class inside it. Do **not** add `+brainstem/` itself to the path.
 
 ## Getting Started
 To get started, refer to the tutorial script `brainstem_api_tutorial.m` for example usage.
 
 The tutorial demonstrates how to:
 
-- **Authenticate:** Authentication with your credentials.
+- **Authenticate:** Using a Personal Access Token or interactive credentials.
 - **Loading Data:** Load sessions and filter data using flexible options.
-- **Updating Entries:** Modify existing models and update them in the database.
+- **Updating Entries:** Partially or fully update existing records.
 - **Creating Entries:** Submit new data entries with required fields.
+- **Deleting Entries:** Remove records by UUID.
 - **Loading Public Data:** Access public projects and data using the public portal.
+- **Pagination:** Load all records across multiple pages automatically.
 
-### Setup Credentials/Token
-Run the `get_token` command. You will be prompted to enter your email and password. The token will be saved in a `.mat` file (`brainstem_authentication.mat`) in the MATLAB API tool folder.
+## Authentication
+
+### Recommended: Personal Access Token (scripts, HPC, automation)
+Create a token at [brainstem.org/private/users/tokens/](https://www.brainstem.org/private/users/tokens/).
+Tokens are valid for 1 year.
+
+```matlab
+% Option A: environment variable (set once per shell/session, or in .env / bashrc)
+setenv('BRAINSTEM_TOKEN','<your_token>')
+client = BrainstemClient();   % picks it up automatically
+
+% Option B: pass directly
+client = BrainstemClient('token','<your_token>');
+```
+
+> **Custom server URL** (local dev, staging):
+> ```matlab
+> setenv('BRAINSTEM_URL', 'http://localhost:8000/')
+> client = BrainstemClient();   % uses the URL from the env var
+> % or pass explicitly:
+> client = BrainstemClient('url','http://localhost:8000/', 'token','<your_token>');
+> ```
+> The standalone `brainstem.*` functions also honour `BRAINSTEM_URL`.
+
+### Interactive login (device flow, desktop MATLAB)
+```matlab
+client = BrainstemClient();   % opens browser login page
+```
+
+## BrainstemClient (recommended)
+
+Create the client once; it holds the token and base URL for all subsequent calls:
+
+```matlab
+client = BrainstemClient('token', getenv('BRAINSTEM_TOKEN'));
+
+% Load sessions
+out = client.load('session');
+
+% Partial update
+patch_data.id = out.sessions(1).id;
+patch_data.description = 'updated';
+client.save(patch_data, 'session', 'method', 'patch');
+
+% Delete
+client.delete(out.sessions(1).id, 'session');
+```
 
 ## Core Functions Overview
-The main functions provided by the BrainSTEM MATLAB API tools are:
 
 | Function | Description |
 |----------|-------------|
-| `get_token` | Get and save authentication token |
-| `load_model` | Load data from any model |
-| `save_model` | Save data to any model |
-| `load_settings` | Load local settings including API token, server URL, and local storage |
-| `load_project` | Load project(s) with extra filters and relational data options |
-| `load_subject` | Load subject(s) with extra filters and relational data options |
-| `load_session` | Load session(s) with extra filters and relational data options |
-| `brainstem_api_tutorial` | Tutorial script with example calls |
+| `BrainstemClient` | Client class — authenticate once, call any endpoint |
+| `brainstem.get_token` | Interactively acquire and cache an API token |
+| `brainstem.logout` | Remove a cached token for a server URL |
+| `brainstem.load` | Load records from any BrainSTEM model |
+| `brainstem.save` | Create or update records (POST / PUT / PATCH) |
+| `brainstem.delete` | Delete a record by UUID |
+| `brainstem.get_app_from_model` | Map a model name to its API app prefix |
+
+## Convenience Loaders
+
+These functions live in the `+brainstem` package. Call them as `brainstem.<name>(...)` or via the client as `client.<name>(...)`.
+
+| Function | Model | Default includes |
+|----------|-------|-----------------|
+| `brainstem.load_project` | project | sessions, subjects, collections, cohorts |
+| `brainstem.load_subject` | subject | procedures, subjectlogs |
+| `brainstem.load_session` | session | dataacquisition, behaviors, manipulations, epochs |
+| `brainstem.load_collection` | collection | sessions |
+| `brainstem.load_cohort` | cohort | subjects |
+| `brainstem.load_behavior` | behavior (modules) | — |
+| `brainstem.load_dataacquisition` | dataacquisition (modules) | — |
+| `brainstem.load_manipulation` | manipulation (modules) | — |
+| `brainstem.load_procedure` | procedure (modules) | — |
+| `brainstem.load_procedurelog` | procedurelog (modules) | — |
+| `brainstem.load_subjectlog` | subjectlog (modules) | — |
+| `brainstem.load_equipment` | equipment (modules) | — |
+| `brainstem.load_consumablestock` | consumablestock (modules) | — |
+
+## Query Options
+
+All `load` calls (and the convenience loaders) support:
+
+| Parameter | Description | Example |
+|-----------|-------------|---------|
+| `filter` | `{field, value}` pairs | `{'name.icontains','Rat'}` |
+| `sort` | field names; `-` prefix = descending | `{'-name'}` |
+| `include` | relational fields to embed | `{'behaviors','subjects'}` |
+| `id` | UUID → fetches single record | `'c5547922-...'` |
+| `limit` | max records per page (max 100) | `50` |
+| `offset` | records to skip | `20` |
+| `load_all` | auto-follow pagination | `true` |
+| `portal` | `'private'` or `'public'` | `'public'` |
+
+### Filter operators
+`icontains`, `startswith`, `endswith`, `gt`, `gte`, `lt`, `lte`
 
 ## Example Usage
 
-### Loading Sessions
-You can load models using `load_model`. Example:
 ```matlab
-output1 = load_model('model','session');
-session = output1.sessions(1);
-```
+client = BrainstemClient('token', getenv('BRAINSTEM_TOKEN'));
 
-### Filtering and Sorting
-You can filter and sort results:
-```matlab
-output1_1 = load_model('model','session','filter',{'name','yeah'});
-output1_2 = load_model('model','session','sort',{'-name'});
-```
+% Load ALL sessions (auto-paginate)
+out = client.load('session', 'load_all', true);
 
-### Including Related Models
-You can load related models as well:
-```matlab
-output1_3 = load_model('model','session','include',{'projects','dataacquisition','behaviors','manipulations'});
-dataacquisition = output1_3.dataacquisition;
-```
+% Filter + sort + include
+out = client.load('session', ...
+    'filter',  {'name.icontains', 'Rat'}, ...
+    'sort',    {'-name'}, ...
+    'include', {'projects','behaviors'});
 
-### Using Convenience Functions
-For easier access, the API provides convenience functions:
+% Single record by UUID
+out = client.load('session', 'id', '<session_uuid>');
 
-```matlab
-output = load_project('name','myproject');
-output = load_subject('name','mysubject');
-output = load_session('name','mysession');
+% Convenience loaders (tab-completable, credentials automatic)
+sessions  = client.load_session('name', 'mysession');
+behaviors = client.load_behavior('session', '<session_uuid>');
+
+% Create
+s.name = 'My new session'; s.projects = {'<proj_uuid>'}; s.tags = [];
+out = client.save(s, 'session');
+
+% Partial update (PATCH)
+patch.id = out.id; patch.description = 'updated';
+client.save(patch, 'session', 'method', 'patch');
+
+% Delete
+client.delete(out.id, 'session');
+
+% Public data
+public_projects = client.load('project', 'portal', 'public');
 ```
-These functions are equivalent to detailed API calls using `load_model` with filters and included relational data.
 
 ## License
 This project is licensed under the MIT License. See the `LICENSE` file for details.
