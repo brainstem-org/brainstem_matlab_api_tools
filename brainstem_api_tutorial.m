@@ -21,7 +21,8 @@ client = BrainstemClient();
 %% 1. Loading sessions
 %  Preferred: use named client methods (tab-completable, credentials automatic)
 
-% Load sessions using the convenience method (includes behaviors, manipulations by default)
+% Load sessions using the convenience method (sideloads data acquisitions, behaviors,
+% manipulations and epochs by default)
 output1 = client.load_session();
 session = output1.sessions(1);
 
@@ -104,6 +105,17 @@ output_projects = client.load_project('include', {'sessions','subjects'});
 % Get consumable resources (no convenience loader — use load directly)
 output_consumables = client.load('consumable', 'app', 'resources');
 
-% Paginate manually (first 50, then next 50)
-output_page1 = client.load_session('limit', 50, 'offset', 0);
-output_page2 = client.load_session('limit', 50, 'offset', 50);
+% Paginate manually: the API pages with page/per_page. limit is the page size
+% (default 100, maximum 500) and offset must be a multiple of it.
+output_page1 = client.load_session('limit', 50);                 % page 1
+output_page2 = client.load_session('limit', 50, 'offset', 50);   % page 2
+fprintf('page %d of %d\n', output_page2.meta.page, output_page2.meta.total_pages);
+
+% Specimen-era models load like any other model (needs a server with the specimen release)
+% output_specimens = client.load('specimenset', 'filter', {'projects', '<project_uuid>'}, 'load_all', true);
+
+% Lists read with include hold only the related records you may read. Reload a record
+% without include before changing a list field such as projects or behaviors:
+% s = client.load('session', 'id', '<session_uuid>'); s = s.session;
+% s.projects{end+1} = '<project_uuid>';
+% client.save(struct('id', s.id, 'projects', {s.projects}), 'session', 'method', 'patch');

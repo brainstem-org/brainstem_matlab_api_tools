@@ -33,6 +33,7 @@ if isempty(regexp(id, '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]
         'id must be a valid UUID (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx), got: %s', id);
 end
 
+model = brainstem_resolve_model(model);
 if isempty(parameters.app)
     parameters.app = brainstem.get_app_from_model(model);
 end

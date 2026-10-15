@@ -1,7 +1,7 @@
 function output = load_manipulation(varargin)
 % LOAD_MANIPULATION  Load manipulation record(s) from BrainSTEM.
 %
-%   Parameters: session, id, tags,
+%   Parameters: session, id,
 %               portal, filter, sort, include, limit, offset, load_all, settings
 %
 %   Examples:
@@ -10,6 +10,6 @@ function output = load_manipulation(varargin)
 %     output = load_manipulation('id', '<uuid>')
 d = struct('app','modules', 'model','manipulation');
 output = brainstem_convenience_load(d, ...
-    {'id','session','tags'}, ...
-    {'id','id'; 'session','session.id'; 'tags','tags'}, ...
+    {'id','session'}, ...
+    {'id','id'; 'session','session'}, ...
     varargin{:});

@@ -11,7 +11,7 @@ function response = brainstem_normalize_list_response(response)
 % If unification fails (truly incompatible types), the field is left as a
 % cell array rather than silently dropping data.
 
-metadata_keys = {'count', 'next', 'previous'};
+metadata_keys = {'meta', 'count', 'next', 'previous'};
 fn = fieldnames(response);
 for k = 1:numel(fn)
     key = fn{k};

@@ -3,6 +3,7 @@ function output = load_cohort(varargin)
 %
 %   Parameters: name, id, description, tags,
 %               portal, filter, sort, include, limit, offset, load_all, settings
+%   'tags' takes a numeric tag id; the server does not filter by tag name.
 %
 %   Examples:
 %     output = load_cohort()

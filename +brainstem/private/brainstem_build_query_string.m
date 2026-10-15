@@ -7,9 +7,11 @@ function qs = brainstem_build_query_string(filter, sort, include, limit, offset)
 %
 %   filter  - cell array of {field, value} pairs, e.g. {'name','session1','tags','1'}
 %   sort    - cell array of field names, prefix '-' for descending, e.g. {'-name'}
-%   include - cell array of relational fields to embed, e.g. {'behaviors','subjects'}
-%   limit   - scalar integer, max records per page (API default: 20, max: 100)
-%   offset  - scalar integer, number of records to skip
+%   include - cell array of relational fields to sideload, e.g. {'behaviors','subjects'}
+%   limit   - scalar integer, records per page (default 100, maximum 500)
+%   offset  - scalar integer, records to skip; a multiple of the page size
+%
+%   limit and offset are sent as per_page and page (see brainstem_page_params).
 
 parts = {};
 
@@ -57,12 +59,13 @@ if ~isempty(include)
     end
 end
 
-% Pagination
-if nargin >= 4 && ~isempty(limit)
-    parts{end+1} = ['limit=', num2str(limit)];
-end
-if nargin >= 5 && ~isempty(offset) && offset > 0
-    parts{end+1} = ['offset=', num2str(offset)];
+% Pagination: the API pages with page/per_page, so translate limit/offset.
+if nargin < 4, limit = []; end
+if nargin < 5, offset = []; end
+if ~isempty(limit) || (~isempty(offset) && offset > 0)
+    [per_page, page] = brainstem_page_params(limit, offset);
+    parts{end+1} = sprintf('per_page=%d', per_page);
+    parts{end+1} = sprintf('page=%d', page);
 end
 
 if isempty(parts)

@@ -33,28 +33,30 @@ classdef BrainstemClient < handle
 %     output = client.load_session(...)        'name','id','projects', ...
 %     output = client.load_collection(...)     'name','id','tags'
 %     output = client.load_cohort(...)         'name','id','tags'
-%     output = client.load_behavior(...)       'session','id','tags'
-%     output = client.load_dataacquisition(...)'session','id','tags'
-%     output = client.load_manipulation(...)   'session','id','tags'
-%     output = client.load_procedure(...)      'subject','id','tags'
+%     output = client.load_behavior(...)       'session','id'
+%     output = client.load_dataacquisition(...)'session','id'
+%     output = client.load_manipulation(...)   'session','id'
+%     output = client.load_procedure(...)      'subject','id'
 %     output = client.load_subjectlog(...)     'subject','type','description','id'
-%     output = client.load_procedurelog(...)   'subject','id','tags'
-%     output = client.load_equipment(...)      'name','session','id','tags'
-%     output = client.load_consumablestock(...)'subject','id','tags'
+%     output = client.load_procedurelog(...)   'procedure','id'
+%     output = client.load_equipment(...)      'name','setup','id'
+%     output = client.load_consumablestock(...)'inventory','id'
 %
 %   LOAD parameters (all optional after model):
 %     'portal'   - 'private' (default) or 'public'
 %     'id'       - UUID; fetches a single record at /<model>/<id>/
 %     'filter'   - cell array {field, value, ...}
 %     'sort'     - cell array of fields; prefix '-' for descending
-%     'include'  - cell array of relational fields to embed
-%     'limit'    - max records per page (API default 20, max 100)
-%     'offset'   - records to skip
+%     'include'  - cell array of relational fields to sideload (see SAVE)
+%     'limit'    - records per page, 1 to 500 (default 100)
+%     'offset'   - records to skip; a multiple of the page size
 %     'load_all' - true to auto-follow pagination and return all records
 %
 %   SAVE parameters (all optional after data and model):
 %     'portal'   - 'private' (default) or 'public'
 %     'method'   - 'put' (default, full replace) or 'patch' (partial update)
+%     Lists read with 'include' hold only readable records; SAVE warns before
+%     sending one (see help brainstem.save).
 %
 %   EXAMPLES
 %     % Authenticate with a Personal Access Token stored in an env variable
@@ -66,7 +68,7 @@ classdef BrainstemClient < handle
 %     % Load a single session by ID
 %     out = client.load('session', 'id', '<session_uuid>');
 %
-%     % Filter, sort, embed relations
+%     % Filter, sort, sideload relations
 %     out = client.load('session', ...
 %             'filter',  {'name.icontains','Rat'}, ...
 %             'sort',    {'-name'}, ...
@@ -222,22 +224,22 @@ classdef BrainstemClient < handle
         end
 
         function output = load_behavior(obj, varargin)
-        % LOAD_BEHAVIOR  Load behavior records. Accepts 'session','id','tags'.
+        % LOAD_BEHAVIOR  Load behavior records. Accepts 'session','id'.
             output = brainstem.load_behavior('settings', obj.settings_(), varargin{:});
         end
 
         function output = load_dataacquisition(obj, varargin)
-        % LOAD_DATAACQUISITION  Load data acquisition records. Accepts 'session','id','tags'.
+        % LOAD_DATAACQUISITION  Load data acquisition records. Accepts 'session','id'.
             output = brainstem.load_dataacquisition('settings', obj.settings_(), varargin{:});
         end
 
         function output = load_manipulation(obj, varargin)
-        % LOAD_MANIPULATION  Load manipulation records. Accepts 'session','id','tags'.
+        % LOAD_MANIPULATION  Load manipulation records. Accepts 'session','id'.
             output = brainstem.load_manipulation('settings', obj.settings_(), varargin{:});
         end
 
         function output = load_procedure(obj, varargin)
-        % LOAD_PROCEDURE  Load procedure records. Accepts 'subject','id','tags'.
+        % LOAD_PROCEDURE  Load procedure records. Accepts 'subject','id'.
             output = brainstem.load_procedure('settings', obj.settings_(), varargin{:});
         end
 
@@ -247,17 +249,17 @@ classdef BrainstemClient < handle
         end
 
         function output = load_procedurelog(obj, varargin)
-        % LOAD_PROCEDURELOG  Load procedure log records. Accepts 'subject','id','tags'.
+        % LOAD_PROCEDURELOG  Load procedure log records. Accepts 'procedure','id'.
             output = brainstem.load_procedurelog('settings', obj.settings_(), varargin{:});
         end
 
         function output = load_equipment(obj, varargin)
-        % LOAD_EQUIPMENT  Load equipment records. Accepts 'name','session','id','tags'.
+        % LOAD_EQUIPMENT  Load equipment records. Accepts 'name','setup','id'.
             output = brainstem.load_equipment('settings', obj.settings_(), varargin{:});
         end
 
         function output = load_consumablestock(obj, varargin)
-        % LOAD_CONSUMABLESTOCK  Load consumable stock records. Accepts 'subject','id','tags'.
+        % LOAD_CONSUMABLESTOCK  Load consumable stock records. Accepts 'inventory','id'.
             output = brainstem.load_consumablestock('settings', obj.settings_(), varargin{:});
         end
 

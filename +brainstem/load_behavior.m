@@ -1,7 +1,7 @@
 function output = load_behavior(varargin)
 % LOAD_BEHAVIOR  Load behavior record(s) from BrainSTEM.
 %
-%   Parameters: session, id, tags,
+%   Parameters: session, id,
 %               portal, filter, sort, include, limit, offset, load_all, settings
 %
 %   Examples:
@@ -10,6 +10,6 @@ function output = load_behavior(varargin)
 %     output = load_behavior('id', '<uuid>')
 d = struct('app','modules', 'model','behavior');
 output = brainstem_convenience_load(d, ...
-    {'id','session','tags'}, ...
-    {'id','id'; 'session','session.id'; 'tags','tags'}, ...
+    {'id','session'}, ...
+    {'id','id'; 'session','session'}, ...
     varargin{:});

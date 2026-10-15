@@ -88,7 +88,7 @@ client.delete(out.sessions(1).id, 'session');
 
 These functions live in the `+brainstem` package. Call them as `brainstem.<name>(...)` or via the client as `client.<name>(...)`.
 
-| Function | Model | Default includes |
+| Function | Model | Default includes (sideloaded) |
 |----------|-------|-----------------|
 | `brainstem.load_project` | project | sessions, subjects, collections, cohorts |
 | `brainstem.load_subject` | subject | procedures, subjectlogs |
@@ -112,22 +112,54 @@ All `load` calls (and the convenience loaders) support:
 |-----------|-------------|---------|
 | `filter` | `{field, value}` pairs | `{'name.icontains','Rat'}` |
 | `sort` | field names; `-` prefix = descending | `{'-name'}` |
-| `include` | relational fields to embed | `{'behaviors','subjects'}` |
+| `include` | relational fields to sideload (see below) | `{'behaviors','subjects'}` |
 | `id` | UUID → fetches single record | `'c5547922-...'` |
-| `limit` | max records per page (max 100) | `50` |
-| `offset` | records to skip | `20` |
-| `load_all` | auto-follow pagination | `true` |
+| `limit` | records per page, 1 to 500 (default 100); sent as `per_page` | `50` |
+| `offset` | records to skip, a multiple of `limit`; sent as `page` | `50` |
+| `load_all` | fetch every page (and merge sideloaded records) | `true` |
 | `portal` | `'private'` or `'public'` | `'public'` |
 
 ### Filter operators
 `icontains`, `startswith`, `endswith`, `gt`, `gte`, `lt`, `lte`
+
+Filter a relation by the bare field name: `{'projects', '<uuid>'}` sends `filter{projects}=<uuid>`, which every server accepts. The `filter{<relation>.id}` form fails on many relations on older servers.
+
+### Convenience loader filters
+
+| Function | Named filters |
+|----------|---------------|
+| `load_project` | `name`, `description`, `sessions`, `subjects`, `tags` |
+| `load_subject` | `name`, `description`, `projects`, `strain`, `sex`, `tags` |
+| `load_session` | `name`, `description`, `projects`, `datastorage`, `tags` |
+| `load_collection`, `load_cohort` | `name`, `description`, `tags` |
+| `load_behavior`, `load_dataacquisition`, `load_manipulation` | `session` |
+| `load_procedure`, `load_subjectlog` | `subject` (`load_subjectlog` also `type`, `description`) |
+| `load_procedurelog` | `procedure` |
+| `load_equipment` | `name`, `setup` |
+| `load_consumablestock` | `inventory` |
+
+`tags` takes a numeric tag id; the server does not filter by tag name.
+
+### Lists read with include
+
+Sending a list field (`projects`, `subjects`, `behaviors`, ...) with `save` replaces the whole list. A record loaded with `include`, which the `load_project`, `load_subject`, `load_session`, `load_collection` and `load_cohort` defaults use, lists only the related records you may read. Saving that list would remove links you cannot see. `load` marks such records with a `brainstem_included` field; `save` removes it and warns (`BrainSTEM:save:partialList`) when it sends one of those lists. Reload the record without `include` before changing a list field.
+
+### Models
+
+Every REST resource of the server can be loaded and saved by name, including the specimen-era ones: `specimenset`, `specimen`, `epoch`, `sessiondatastorage`, `experimentalinterface`, `materialusage`, `specimenprocedure`, `specimenlog`, `procedureepisode`, `anatomicalregion`, `anatomicalreference`, `coordinatetransform`, the link tables and the templates. `brainregion` is the deprecated name of `anatomicalregion`: `load`, `save` and `delete` still accept it, with a warning, and use `anatomicalregion`.
+
+### Known limitations
+
+- Specimen-era models need a server with the specimen release; older servers answer 404 for them.
+- `offset` must be a multiple of the page size, and a page holds at most 500 records. Use `load_all` to get everything.
+- Records copied into a new struct lose the `brainstem_included` mark, so `save` cannot warn about them.
 
 ## Example Usage
 
 ```matlab
 client = BrainstemClient('token', getenv('BRAINSTEM_TOKEN'));
 
-% Load ALL sessions (auto-paginate)
+% Load ALL sessions (follows every page; out.meta.total_results is the total)
 out = client.load('session', 'load_all', true);
 
 % Filter + sort + include

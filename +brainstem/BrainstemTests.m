@@ -163,9 +163,51 @@ classdef BrainstemTests < matlab.unittest.TestCase
             tc.verifyEqual(brainstem.get_app_from_model('groupmembershiprequest'), 'users');
         end
 
-        % auth
         function testAppFromModelGroup(tc)
-            tc.verifyEqual(brainstem.get_app_from_model('group'), 'auth');
+            % The server serves groups at /api/<portal>/users/group/.
+            tc.verifyEqual(brainstem.get_app_from_model('group'), 'users');
+        end
+
+        function testAppFromModelSpecimenEra(tc)
+            cases = {'specimenset','stem'; 'specimen','stem'; 'epoch','stem'; ...
+                     'sessiondatastorage','stem'; 'collectionsession','stem'; ...
+                     'experimentalinterface','modules'; 'materialusage','modules'; ...
+                     'specimenprocedure','modules'; 'specimenlog','modules'; ...
+                     'procedureepisode','modules'; 'experimentalinterfacetemplate','modules'; ...
+                     'dataacquisitioninterface','modules'; 'anatomicalregion','taxonomies'; ...
+                     'anatomicalreference','taxonomies'; 'coordinatetransform','taxonomies'; ...
+                     'speciesapproval','taxonomies'; 'setupmembershipinvitation','personal_attributes'; ...
+                     'admingroup','users'; 'pendinginvitation','users'};
+            for i = 1:size(cases, 1)
+                tc.verifyEqual(brainstem.get_app_from_model(cases{i,1}), cases{i,2}, cases{i,1});
+            end
+        end
+
+        % ------------------------------------------------------------------
+        % brainstem_response_key  (package-private helper)
+        % ------------------------------------------------------------------
+        function testResponseKeyPlural(tc)
+            tc.verifyEqual(brainstem_response_key('session'), 'sessions');
+            tc.verifyEqual(brainstem_response_key('dataacquisition'), 'data_acquisitions');
+            tc.verifyEqual(brainstem_response_key('anatomicalregion'), 'anatomical_regions');
+        end
+
+        function testResponseKeyMatchesJsondecode(tc)
+            % The server's key for consumable stocks contains a space.
+            decoded = jsondecode('{"consumable stocks": [], "meta": {}}');
+            tc.verifyTrue(isfield(decoded, brainstem_response_key('consumablestock')));
+        end
+
+        function testBrainregionResolvesToAnatomicalregion(tc)
+            tc.verifyWarning(@() brainstem_resolve_model('brainregion'), 'BrainSTEM:deprecatedModel');
+            warning('off', 'BrainSTEM:deprecatedModel');
+            restore = onCleanup(@() warning('on', 'BrainSTEM:deprecatedModel'));
+            tc.verifyEqual(brainstem_resolve_model('brainregion'), 'anatomicalregion');
+            tc.verifyEqual(brainstem_resolve_model('session'), 'session');
+        end
+
+        function testResponseKeyUnknownModelFallsBack(tc)
+            tc.verifyEqual(brainstem_response_key('widget'), 'widgets');
         end
 
         % ------------------------------------------------------------------
@@ -262,12 +304,67 @@ classdef BrainstemTests < matlab.unittest.TestCase
 
         function testQueryStringLimit(tc)
             qs = brainstem_build_query_string({}, {}, {}, 50, 0);
-            tc.verifyTrue(contains(qs, 'limit=50'), qs);
+            tc.verifyTrue(contains(qs, 'per_page=50'), qs);
+            tc.verifyTrue(contains(qs, 'page=1'), qs);
+            tc.verifyFalse(contains(qs, 'limit='), qs);
         end
 
         function testQueryStringOffset(tc)
-            qs = brainstem_build_query_string({}, {}, {}, [], 20);
-            tc.verifyTrue(contains(qs, 'offset=20'), qs);
+            % offset 200 with the default page size 100 is page 3
+            qs = brainstem_build_query_string({}, {}, {}, [], 200);
+            tc.verifyTrue(contains(qs, 'per_page=100'), qs);
+            tc.verifyTrue(contains(qs, '&page=3'), qs);
+            tc.verifyFalse(contains(qs, 'offset='), qs);
+        end
+
+        function testQueryStringLimitAndOffset(tc)
+            qs = brainstem_build_query_string({}, {}, {}, 20, 40);
+            tc.verifyTrue(contains(qs, 'per_page=20'), qs);
+            tc.verifyTrue(contains(qs, '&page=3'), qs);
+        end
+
+        function testQueryStringNoPagingByDefault(tc)
+            qs = brainstem_build_query_string({'name','x'}, {}, {}, [], 0);
+            tc.verifyFalse(contains(qs, 'page'), qs);
+        end
+
+        function testQueryStringOffsetNotMultipleErrors(tc)
+            tc.verifyError(@() brainstem_build_query_string({}, {}, {}, 50, 20), 'BrainSTEM:load');
+        end
+
+        function testQueryStringLimitAboveMaximumErrors(tc)
+            tc.verifyError(@() brainstem_build_query_string({}, {}, {}, 501, 0), 'BrainSTEM:load');
+            tc.verifyError(@() brainstem_build_query_string({}, {}, {}, 0, 0), 'BrainSTEM:load');
+        end
+
+        % ------------------------------------------------------------------
+        % brainstem_merge_records  (package-private helper)
+        % ------------------------------------------------------------------
+        function testMergeRecordsColumnStructArrays(tc)
+            a = jsondecode('[{"id":"1","name":"a"},{"id":"2","name":"b"}]');
+            b = jsondecode('[{"id":"3","name":"c"}]');
+            merged = brainstem_merge_records(a, b);
+            tc.verifyEqual({merged.id}, {'1','2','3'});
+        end
+
+        function testMergeRecordsSkipsRepeatedIds(tc)
+            a = jsondecode('[{"id":"1"},{"id":"2"}]');
+            b = jsondecode('[{"id":"2"},{"id":"3"}]');
+            merged = brainstem_merge_records(a, b);
+            tc.verifyEqual({merged.id}, {'1','2','3'});
+        end
+
+        function testMergeRecordsDifferentFields(tc)
+            a = jsondecode('[{"id":"1","x":1}]');
+            b = jsondecode('[{"id":"2","y":2}]');
+            merged = brainstem_merge_records(a, b);
+            tc.verifyEqual(numel(merged), 2);
+        end
+
+        function testMergeRecordsEmptyPage(tc)
+            a = jsondecode('[{"id":"1"}]');
+            merged = brainstem_merge_records(a, []);
+            tc.verifyEqual({merged.id}, {'1'});
         end
 
         function testQueryStringStartsWithQuestionMark(tc)
@@ -302,11 +399,11 @@ classdef BrainstemTests < matlab.unittest.TestCase
             p.name    = 'Rat';
             p.subject = 'uuid-123';
             result = brainstem_apply_field_filters(p, {'name','subject'}, ...
-                {'name','name.icontains'; 'subject','subject.id'});
+                {'name','name.icontains'; 'subject','subject'});
             tc.verifyEqual(numel(result), 4);  % 2 pairs × 2 elements
             tc.verifyTrue(any(strcmp(result(:,1), 'name.icontains')));
             tc.verifyTrue(any(strcmp(result(:,2), 'Rat')));
-            tc.verifyTrue(any(strcmp(result(:,1), 'subject.id')));
+            tc.verifyTrue(any(strcmp(result(:,1), 'subject')));
         end
 
         function testFieldFiltersPreservesExistingFilter(tc)
@@ -318,6 +415,24 @@ classdef BrainstemTests < matlab.unittest.TestCase
             % Original filter row must still be present
             tc.verifyTrue(any(strcmp(result(:,1), 'type')));
             tc.verifyTrue(any(strcmp(result(:,1), 'name.icontains')));
+        end
+
+        function testFieldFiltersFlatUserFilterWithNamedFilter(tc)
+            % Two flat user pairs plus a named filter used to fail to concatenate.
+            p.filter = {'type', 'Weighing', 'description.icontains', 'x'};
+            p.subject = 'abc';
+            result = brainstem_apply_field_filters(p, {'subject'}, {'subject','subject'});
+            tc.verifyEqual(size(result), [3 2]);
+            tc.verifyEqual(result(3,:), {'subject', 'abc'});
+        end
+
+        function testLoaderFilterMapsUseBareFields(tc)
+            % filter{<relation>.id} fails on most relations on production servers.
+            files = dir(fullfile(fileparts(mfilename('fullpath')), 'load_*.m'));
+            for i = 1:numel(files)
+                text = fileread(fullfile(files(i).folder, files(i).name));
+                tc.verifyEmpty(regexp(text, '\.id''', 'once'), files(i).name);
+            end
         end
 
         function testFieldFiltersDefaultsToIcontains(tc)
@@ -478,6 +593,20 @@ classdef BrainstemTests < matlab.unittest.TestCase
                     '00000000-0000-0000-0000-000000000000', 'session', ...
                     'settings', settings), ...
                 'BrainSTEM:delete');
+        end
+
+        function testSaveWarnsOnListReadWithInclude(tc)
+            settings = struct('url', tc.BASE_URL, 'token', '');
+            data = struct('id', '00000000-0000-0000-0000-000000000000', ...
+                          'behaviors', {{'b1'}}, 'brainstem_included', {{'behaviors'}});
+            tc.verifyWarning(@() tc.saveIgnoringErrors(data, settings), 'BrainSTEM:save:partialList');
+        end
+
+        function testSaveNoWarningWithoutIncludedList(tc)
+            settings = struct('url', tc.BASE_URL, 'token', '');
+            data = struct('id', '00000000-0000-0000-0000-000000000000', ...
+                          'description', 'x', 'brainstem_included', {{'behaviors'}});
+            tc.verifyWarningFree(@() tc.saveIgnoringErrors(data, settings));
         end
 
         function testSaveEmptyTokenErrors(tc)
@@ -648,8 +777,67 @@ classdef BrainstemTests < matlab.unittest.TestCase
             out = brainstem.load('model', 'project', 'portal', 'public', ...
                              'settings', settings, 'limit', 5);
             tc.verifyTrue(isstruct(out));
-            tc.verifyTrue(isfield(out, 'projects') || isfield(out, 'count'), ...
-                'Response should have a projects or count field');
+            tc.verifyTrue(isfield(out, 'projects'), 'Response should have a projects field');
+            tc.verifyTrue(isfield(out, 'meta') && isfield(out.meta, 'total_results'));
+        end
+
+        function testLoadAllReturnsEveryRecord(tc)
+            % More records than one page: load_all must follow meta.total_pages.
+            settings = struct('url', tc.BASE_URL, 'token', '');
+            out = brainstem.load('model', 'session', 'portal', 'public', ...
+                                 'settings', settings, 'limit', 50, 'load_all', true);
+            tc.assumeGreaterThan(out.meta.total_results, 50);
+            tc.verifyEqual(numel(out.sessions), out.meta.total_results);
+            tc.verifyEqual(numel(unique({out.sessions.id})), out.meta.total_results);
+        end
+
+        function testLoadAllMergesSideloads(tc)
+            settings = struct('url', tc.BASE_URL, 'token', '');
+            out = brainstem.load_session('portal', 'public', 'settings', settings, ...
+                                         'limit', 50, 'load_all', true);
+            tc.verifyEqual(numel(out.sessions), out.meta.total_results);
+            tc.verifyTrue(isfield(out.sessions, 'brainstem_included'));
+        end
+
+        function testManualPaging(tc)
+            settings = struct('url', tc.BASE_URL, 'token', '');
+            page2 = brainstem.load('model', 'session', 'portal', 'public', ...
+                                   'settings', settings, 'limit', 20, 'offset', 20);
+            tc.verifyEqual(page2.meta.page, 2);
+            tc.verifyEqual(page2.meta.per_page, 20);
+        end
+
+        function testConvenienceLoaderFiltersOnPublicPortal(tc)
+            % Every relation filter must be accepted by the production server.
+            settings = struct('url', tc.BASE_URL, 'token', '');
+            args = {'portal', 'public', 'settings', settings, 'limit', 1};
+            sessions = brainstem.load('model', 'session', args{:}, 'include', {});
+            s = sessions.sessions(1);
+            projects = s.projects;
+            if iscell(projects), project = projects{1}; else, project = projects(1); end
+            subjects = brainstem.load('model', 'subject', args{:}, 'filter', {'projects', project});
+            calls = { ...
+                @() brainstem.load_session(args{:}, 'projects', project), ...
+                @() brainstem.load_subject(args{:}, 'projects', project), ...
+                @() brainstem.load_project(args{:}, 'sessions', s.id), ...
+                @() brainstem.load_behavior(args{:}, 'session', s.id), ...
+                @() brainstem.load_dataacquisition(args{:}, 'session', s.id), ...
+                @() brainstem.load_manipulation(args{:}, 'session', s.id)};
+            if ~isempty(subjects.subjects)
+                sub = subjects.subjects(1);
+                calls = [calls, { ...
+                    @() brainstem.load_project(args{:}, 'subjects', sub.id), ...
+                    @() brainstem.load_procedure(args{:}, 'subject', sub.id), ...
+                    @() brainstem.load_subjectlog(args{:}, 'subject', sub.id), ...
+                    @() brainstem.load_procedurelog(args{:}, 'procedure', sub.id)}];
+                if ischar(sub.strain)
+                    calls{end+1} = @() brainstem.load_subject(args{:}, 'strain', sub.strain);
+                end
+            end
+            for i = 1:numel(calls)
+                out = calls{i}();
+                tc.verifyTrue(isfield(out, 'meta'), func2str(calls{i}));
+            end
         end
 
         function testLoadPublicProjectsStructure(tc)
@@ -759,14 +947,8 @@ classdef BrainstemTests < matlab.unittest.TestCase
                 'Set BRAINSTEM_TOKEN env variable to run authenticated tests');
             client = BrainstemClient('token', tc.TOKEN);
             % load_all should return at least as many records as a single page
-            out_page = client.load('project', 'limit', 1);
-            out_all  = client.load('project', 'load_all', true);
-            if isfield(out_page, 'count') && out_page.count > 1
-                data_key = setdiff(fieldnames(out_all), {'count','next','previous'});
-                if ~isempty(data_key)
-                    tc.verifyGreaterThan(numel(out_all.(data_key{1})), 1);
-                end
-            end
+            out_all = client.load('project', 'limit', 1, 'load_all', true);
+            tc.verifyEqual(numel(out_all.projects), out_all.meta.total_results);
         end
 
         function testClientDispAuthenticated(tc)
@@ -791,6 +973,15 @@ classdef BrainstemTests < matlab.unittest.TestCase
         function tf = startsWith_(str, prefix)
             n = numel(prefix);
             tf = numel(str) >= n && strcmp(str(1:n), prefix);
+        end
+
+        function saveIgnoringErrors(data, settings)
+            % Run save up to its token check; only its warnings matter here.
+            try
+                brainstem.save('data', data, 'model', 'session', 'method', 'patch', ...
+                               'settings', settings);
+            catch
+            end
         end
 
     end
