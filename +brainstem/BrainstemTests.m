@@ -8,8 +8,8 @@ classdef BrainstemTests < matlab.unittest.TestCase
 %   Run all tests including unauthenticated network tests:
 %     results = runtests('brainstem.BrainstemTests');
 %
-%   Run authenticated tests (requires BRAINSTEM_TOKEN to be set first):
-%     setenv('BRAINSTEM_TOKEN', '<your-token>');
+%   Run authenticated tests (requires BRAINSTEM_API_TOKEN to be set first):
+%     setenv('BRAINSTEM_API_TOKEN', '<your-token>');
 %     results = runtests('brainstem.BrainstemTests', 'Tag', 'authenticated');
 %
 %   Run with verbose output:
@@ -17,10 +17,10 @@ classdef BrainstemTests < matlab.unittest.TestCase
 %     results = runner.run(brainstem.BrainstemTests);
 
     properties (Constant)
-        % Set BRAINSTEM_TOKEN in your environment before running authenticated
-        % tests.  The value is read once when the class is first loaded.
+        % Set BRAINSTEM_API_TOKEN (or BRAINSTEM_TOKEN) in your environment before
+        % running authenticated tests.  The value is read once when the class is first loaded.
         BASE_URL = 'https://www.brainstem.org/'
-        TOKEN    = getenv('BRAINSTEM_TOKEN')
+        TOKEN    = brainstem.BrainstemTests.envToken()
     end
 
     % ======================================================================
@@ -193,9 +193,27 @@ classdef BrainstemTests < matlab.unittest.TestCase
         end
 
         function testResponseKeyMatchesJsondecode(tc)
-            % The server's key for consumable stocks contains a space.
-            decoded = jsondecode('{"consumable stocks": [], "meta": {}}');
+            % The server lists consumable stocks under consumable_stocks (its agent
+            % reference's response_key_plural); older servers used "consumable stocks".
+            decoded = jsondecode('{"consumable_stocks": [], "meta": {}}');
             tc.verifyTrue(isfield(decoded, brainstem_response_key('consumablestock')));
+        end
+
+        function testEveryModelHasAResponseKey(tc)
+            % Each model get_app_from_model knows must have an explicit response key,
+            % so a renamed server key cannot silently fall back to '<model>s'.
+            src = fileread(fullfile(fileparts(mfilename('fullpath')), 'get_app_from_model.m'));
+            models = regexp(src, '''(\w+)''', 'tokens');
+            models = unique(cellfun(@(c) c{1}, models, 'UniformOutput', false));
+            keys = fileread(fullfile(fileparts(mfilename('fullpath')), 'private', 'brainstem_response_key.m'));
+            for i = 1:numel(models)
+                model = models{i};
+                if isempty(brainstem.get_app_from_model(model)) || strcmp(model, 'brainregion')
+                    continue
+                end
+                tc.verifyTrue(contains(keys, ['''' model ''', ''']), ...
+                    sprintf('%s has no entry in brainstem_response_key', model));
+            end
         end
 
         function testBrainregionResolvesToAnatomicalregion(tc)
@@ -481,13 +499,80 @@ classdef BrainstemTests < matlab.unittest.TestCase
         function testClientHonoursBrainstemUrlEnvVar(tc)
             % BrainstemClient() with no 'url' argument should use BRAINSTEM_URL.
             prev = getenv('BRAINSTEM_URL');
+            prev_api = getenv('BRAINSTEM_API_URL');
+            setenv('BRAINSTEM_API_URL', '');
             setenv('BRAINSTEM_URL', 'http://env-server.test/');
             try
                 client = BrainstemClient('token', 'tok');
                 tc.verifyEqual(client.url, 'http://env-server.test/');
             finally
                 setenv('BRAINSTEM_URL', prev);
+                setenv('BRAINSTEM_API_URL', prev_api);
             end
+        end
+
+        function testSharedApiUrlEnvVarWins(tc)
+            % BRAINSTEM_API_URL (shared with the Python client) beats the older BRAINSTEM_URL,
+            % and a missing trailing slash is added.
+            prev = getenv('BRAINSTEM_URL');
+            prev_api = getenv('BRAINSTEM_API_URL');
+            setenv('BRAINSTEM_API_URL', 'http://shared.test');
+            setenv('BRAINSTEM_URL', 'http://legacy.test/');
+            try
+                [url, ~] = brainstem.env_defaults();
+                tc.verifyEqual(url, 'http://shared.test/');
+                client = BrainstemClient('token', 'tok');
+                tc.verifyEqual(client.url, 'http://shared.test/');
+            finally
+                setenv('BRAINSTEM_URL', prev);
+                setenv('BRAINSTEM_API_URL', prev_api);
+            end
+        end
+
+        function testSharedApiTokenEnvVarWins(tc)
+            prev = getenv('BRAINSTEM_TOKEN');
+            prev_api = getenv('BRAINSTEM_API_TOKEN');
+            setenv('BRAINSTEM_API_TOKEN', 'shared-token');
+            setenv('BRAINSTEM_TOKEN', 'legacy-token');
+            try
+                [~, token] = brainstem.env_defaults();
+                tc.verifyEqual(token, 'shared-token');
+                client = BrainstemClient();
+                tc.verifyEqual(client.token, 'shared-token');
+            finally
+                setenv('BRAINSTEM_TOKEN', prev);
+                setenv('BRAINSTEM_API_TOKEN', prev_api);
+            end
+        end
+
+        function testAnonymousClientHasNoTokenAndNoLogin(tc)
+            client = BrainstemClient('anonymous', true, 'url', 'http://no-login.test/');
+            tc.verifyTrue(client.anonymous);
+            tc.verifyEmpty(client.token);
+            tc.verifyEqual(client.token_type, 'none');
+        end
+
+        function testExportRequiresIdAndToken(tc)
+            settings = struct('url', tc.BASE_URL, 'token', 'fake');
+            tc.verifyError(@() brainstem.export_project('', 'settings', settings), 'BrainSTEM:export');
+            settings.token = '';
+            tc.verifyError(@() brainstem.export_session('00000000-0000-0000-0000-000000000000', ...
+                'settings', settings), 'BrainSTEM:export');
+        end
+
+        function testHttpStatusParsing(tc)
+            me = MException('t:e', 'The server returned the status 404 with message "Not Found" in response to the request to URL https://x/api/private/stem/session/a4011111-0000-0000-0000-000000000000/');
+            tc.verifyEqual(brainstem_http_status(me), 404);
+            me = MException('t:e', 'API error fetching https://x/api/private/stem/session/a4011111-0000-0000-0000-000000000000/: 401 Unauthorized');
+            tc.verifyEqual(brainstem_http_status(me), 401);
+            me = MException('t:e', 'Connection refused');
+            tc.verifyEmpty(brainstem_http_status(me));
+        end
+
+        function testClientDispNeverPrintsToken(tc)
+            client = BrainstemClient('token', 'supersecrettoken123');
+            text = evalc('disp(client)');
+            tc.verifyFalse(contains(text, 'supersecret'));
         end
 
         function testClientExplicitUrlOverridesEnvVar(tc)
@@ -960,6 +1045,17 @@ classdef BrainstemTests < matlab.unittest.TestCase
         end
 
     end  % authenticated tests
+
+    % ======================================================================
+    methods (Static)
+        function token = envToken()
+        % Token for the authenticated tests: BRAINSTEM_API_TOKEN, else BRAINSTEM_TOKEN.
+            token = getenv('BRAINSTEM_API_TOKEN');
+            if isempty(token)
+                token = getenv('BRAINSTEM_TOKEN');
+            end
+        end
+    end
 
     % ======================================================================
     methods (Access = private, Static)

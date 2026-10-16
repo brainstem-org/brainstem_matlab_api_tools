@@ -71,8 +71,14 @@ while now < deadline
     fprintf('.');
     try
         r = webwrite(poll_url, poll_body, options_poll);
-    catch
-        continue
+    catch ME
+        status = brainstem_http_status(ME);
+        if isequal(status, 429) || isempty(status)
+            continue   % throttled or a transient network error: keep polling
+        end
+        fprintf('\n');
+        % 400 invalid_device_code, 500 token_error: the request cannot succeed any more
+        error('BrainSTEM:deviceAuthError', 'Authentication failed: %s', brainstem_parse_api_error(ME));
     end
     if isfield(r, 'status') && strcmp(r.status, 'success')
         token = r.token;

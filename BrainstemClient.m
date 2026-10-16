@@ -11,21 +11,28 @@ classdef BrainstemClient < handle
 %     client = BrainstemClient('token', TOKEN)
 %       Use a Personal Access Token directly (recommended for scripts/HPC).
 %       Get your token at https://www.brainstem.org/private/users/tokens/
-%       You can also set the environment variable BRAINSTEM_TOKEN and call:
-%         client = BrainstemClient('token', getenv('BRAINSTEM_TOKEN'))
+%       Without 'token', the environment variable BRAINSTEM_API_TOKEN (shared
+%       with the Python client, brainstem-nwb and the agent skills; the older
+%       BRAINSTEM_TOKEN still works) is used, then the cached login.
 %
 %     client = BrainstemClient('url', URL)
 %       Connect to a non-default server (e.g. local dev instance).
-%       The BRAINSTEM_URL environment variable is honoured when 'url' is
-%       not supplied explicitly:
-%         setenv('BRAINSTEM_URL', 'http://localhost:8000/')
+%       BRAINSTEM_API_URL (or BRAINSTEM_URL) is honoured when 'url' is not
+%       supplied explicitly:
+%         setenv('BRAINSTEM_API_URL', 'http://localhost:8000/')
 %         client = BrainstemClient()   % uses http://localhost:8000/
 %
+%     client = BrainstemClient('anonymous', true)
+%       Read public data without logging in; no token is sent and only the
+%       public portal works.
 %
 %   CORE METHODS
 %     output = client.load(model, ...)
 %     output = client.save(data, model, ...)
 %     output = client.delete(id, model, ...)
+%     output = client.export_project(project_id, ...)   'background','file'
+%     output = client.export_session(session_id, ...)   'background','file'
+%     text   = client.agent_reference(page)             public, no token
 %
 %   CONVENIENCE LOADERS  (named shortcuts with pre-set include defaults)
 %     output = client.load_project(...)        'name','id','tags', ...
@@ -94,41 +101,50 @@ classdef BrainstemClient < handle
 %
 %     % Load public projects
 %     out = client.load('project', 'portal', 'public');
+%
+%     % Export a project (format 2.1 JSON), also to a file for brainstem-nwb
+%     export = client.export_project('<project_uuid>', 'file', 'project.json.gz');
+%
+%     % Read the server's agent reference
+%     disp(client.agent_reference('index.md'))
 
     properties (SetAccess = private)
         url        (1,:) char  = 'https://www.brainstem.org/'
         token      (1,:) char  = ''
         token_type (1,:) char  = 'personal'
+        anonymous  (1,1) logical = false
     end
 
     methods
         % ------------------------------------------------------------------
         function obj = BrainstemClient(varargin)
         % BRAINSTEMCLIENT  Constructor.
-            default_url = getenv('BRAINSTEM_URL');
-            if isempty(default_url)
-                default_url = 'https://www.brainstem.org/';
-            end
+            [default_url, env_token] = brainstem.env_defaults();
 
             p = inputParser;
-            addParameter(p, 'url',   default_url, @ischar);
-            addParameter(p, 'token', '',          @ischar);
+            addParameter(p, 'url',       default_url, @ischar);
+            addParameter(p, 'token',     '',          @ischar);
+            addParameter(p, 'anonymous', false,       @islogical);
             parse(p, varargin{:});
 
             obj.url = p.Results.url;
+            if ~isempty(obj.url) && obj.url(end) ~= '/'
+                obj.url = [obj.url '/'];
+            end
 
-            if ~isempty(p.Results.token)
+            if p.Results.anonymous
+                % Public reads only: send no token and never start a login.
+                obj.anonymous  = true;
+                obj.token      = '';
+                obj.token_type = 'none';
+            elseif ~isempty(p.Results.token)
                 obj.token = p.Results.token;
+            elseif ~isempty(env_token)
+                % Environment variable first (headless-friendly)
+                obj.token = env_token;
             else
-                % Try environment variable first (headless-friendly)
-                env_token = getenv('BRAINSTEM_TOKEN');
-                if ~isempty(env_token)
-                    obj.token = env_token;
-                    disp('BrainstemClient: authenticated via BRAINSTEM_TOKEN environment variable.');
-                else
-                    % Fall back to saved token or interactive login
-                    obj.token = obj.load_or_request_token_();
-                end
+                % Fall back to saved token or interactive login
+                obj.token = obj.load_or_request_token_();
             end
         end
 
@@ -264,6 +280,23 @@ classdef BrainstemClient < handle
         end
 
         % ------------------------------------------------------------------
+        function output = export_project(obj, project_id, varargin)
+        % EXPORT_PROJECT  Download a project's JSON export (see brainstem.export_project).
+            output = brainstem.export_project(project_id, 'settings', obj.settings_(), varargin{:});
+        end
+
+        function output = export_session(obj, session_id, varargin)
+        % EXPORT_SESSION  Download one session's JSON export (see brainstem.export_session).
+            output = brainstem.export_session(session_id, 'settings', obj.settings_(), varargin{:});
+        end
+
+        function text = agent_reference(obj, page)
+        % AGENT_REFERENCE  One page of the server's public agent reference (default index.md).
+            if nargin < 2, page = 'index.md'; end
+            text = brainstem.agent_reference(page, 'url', obj.url);
+        end
+
+        % ------------------------------------------------------------------
         function logout(obj)
         % LOGOUT  Remove the cached token for this client's URL and clear the
         %         in-memory token so subsequent calls will re-authenticate.
@@ -274,14 +307,14 @@ classdef BrainstemClient < handle
         % ------------------------------------------------------------------
         function disp(obj)
         % DISP  Display a compact summary of the client state.
+            % The token itself is never printed.
             authenticated = ~isempty(obj.token);
             fprintf('  BrainstemClient\n');
-            fprintf('    url        : %s\n', obj.url);
-            fprintf('    token_type : %s\n', obj.token_type);
+            fprintf('    url          : %s\n', obj.url);
+            fprintf('    token_type   : %s\n', obj.token_type);
             fprintf('    authenticated: %s\n', mat2str(authenticated));
-            if authenticated
-                n = min(8, numel(obj.token));
-                fprintf('    token      : %s...\n', obj.token(1:n));
+            if obj.anonymous
+                fprintf('    anonymous    : public portal only\n');
             end
         end
     end
@@ -337,10 +370,19 @@ classdef BrainstemClient < handle
             obj.token = brainstem.get_token(obj.url);
         end
 
-        function tf = is_auth_error_(~, ME)
-        % Return true if the error message indicates a 401/403 response.
-            tf = contains(ME.message, {'401','403','Unauthorized','Forbidden'}, ...
-                          'IgnoreCase', true);
+        function tf = is_auth_error_(obj, ME)
+        % True only for a 401 response: the token is missing, invalid or expired.
+        % A 403 is a permission decision that a new login cannot change, and the
+        % request URL (which may contain '401') must not trigger a login either.
+            tf = false;
+            if obj.anonymous
+                return
+            end
+            tok = regexp(ME.message, 'status (\d{3}) with message', 'tokens', 'once');
+            if isempty(tok)
+                tok = regexp(ME.message, ': (\d{3}) [A-Z]', 'tokens', 'once');
+            end
+            tf = ~isempty(tok) && strcmp(tok{1}, '401');
         end
     end
 end

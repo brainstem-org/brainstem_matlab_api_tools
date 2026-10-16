@@ -5,13 +5,11 @@ function logout(varargin)
 %   brainstem.logout(url)                positional form
 %   brainstem.logout('url', url)         name-value form
 %
-%   If the BRAINSTEM_TOKEN environment variable is set, it is not modified
-%   here — clear it manually with setenv('BRAINSTEM_TOKEN', '').
+%   The default URL is BRAINSTEM_API_URL (or BRAINSTEM_URL) when set. A token in
+%   BRAINSTEM_API_TOKEN or BRAINSTEM_TOKEN is not modified here — clear it with
+%   setenv('BRAINSTEM_API_TOKEN', '').
 
-default_url = getenv('BRAINSTEM_URL');
-if isempty(default_url)
-    default_url = 'https://www.brainstem.org/';
-end
+default_url = brainstem_env_settings();
 
 if nargin == 0
     url = default_url;

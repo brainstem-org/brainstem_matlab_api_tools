@@ -4,22 +4,18 @@ function settings = brainstem_get_settings()
 %   Resolves URL and token in a well-defined precedence order:
 %
 %   URL (in order):
-%     1. BRAINSTEM_URL environment variable
+%     1. BRAINSTEM_API_URL (shared with the other BrainSTEM tools), else BRAINSTEM_URL
 %     2. Default: https://www.brainstem.org/
 %
 %   Token (in order):
-%     1. BRAINSTEM_TOKEN environment variable  (recommended for scripts/HPC)
+%     1. BRAINSTEM_API_TOKEN (shared with the other BrainSTEM tools), else BRAINSTEM_TOKEN
 %     2. Cached token in prefdir/brainstem_authentication.mat
 %     3. Interactive device-authorization flow  (opens browser)
 
-url = getenv('BRAINSTEM_URL');
-if isempty(url)
-    url = 'https://www.brainstem.org/';
-end
+[url, env_token] = brainstem_env_settings();
 settings.url = url;
 
 % 1. Environment variable — headless / HPC friendly
-env_token = getenv('BRAINSTEM_TOKEN');
 if ~isempty(env_token)
     settings.token = env_token;
     return
@@ -48,7 +44,7 @@ if exist(auth_path, 'file')
         elseif days_left < 15
             warning('BrainSTEM:tokenNearExpiry', ...
                 ['BrainSTEM token expires in ~%.0f days. ' ...
-                 'Regenerate at https://www.brainstem.org/private/users/tokens/'], days_left);
+                 'Regenerate at %sprivate/users/tokens/'], days_left, url);
             settings.token = auth_tbl.tokens{idx};
         else
             settings.token = auth_tbl.tokens{idx};

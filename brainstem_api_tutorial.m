@@ -7,8 +7,9 @@
 %
 %   Option A - Personal Access Token (recommended for scripts / HPC / automation):
 %     Create your token at https://www.brainstem.org/private/users/tokens/
-%     Set it as an environment variable once per MATLAB session:
-%       setenv('BRAINSTEM_TOKEN','<your_token>')
+%     Set it as an environment variable once per MATLAB session (the same variable
+%     the Python client, brainstem-nwb and the agent skills read):
+%       setenv('BRAINSTEM_API_TOKEN','<your_token>')
 %       client = BrainstemClient()       % picks it up automatically
 %     Or pass it directly:
 %       client = BrainstemClient('token','<your_token>');
@@ -87,9 +88,9 @@ output5_7  = client.load_procedure('subject', '<subject_uuid>');
 output5_8  = client.load_collection('name', 'My Collection');
 output5_9  = client.load_cohort('name', 'My Cohort');
 output5_10 = client.load_subjectlog('subject', '<subject_uuid>');
-output5_11 = client.load_procedurelog('subject', '<subject_uuid>');
-output5_12 = client.load_equipment('session', '<session_uuid>');
-output5_13 = client.load_consumablestock('subject', '<subject_uuid>');
+output5_11 = client.load_procedurelog('procedure', '<procedure_uuid>');
+output5_12 = client.load_equipment('setup', '<setup_uuid>');
+output5_13 = client.load_consumablestock('inventory', '<inventory_uuid>');
 
 % The package functions are also available directly when you need them:
 output5_pkg = brainstem.load_session('name', 'mysession');
@@ -119,3 +120,26 @@ fprintf('page %d of %d\n', output_page2.meta.page, output_page2.meta.total_pages
 % s = client.load('session', 'id', '<session_uuid>'); s = s.session;
 % s.projects{end+1} = '<project_uuid>';
 % client.save(struct('id', s.id, 'projects', {s.projects}), 'session', 'method', 'patch');
+
+%% 8. Public data without logging in
+
+% An anonymous client sends no token; only the public portal works with it.
+public_client = BrainstemClient('anonymous', true);
+public_projects = public_client.load('project', 'portal', 'public', 'load_all', true);
+
+%% 9. Exporting a project or a session
+
+% One JSON document (format 2.1) with every record of the project or session you may
+% read. 'file' keeps the original JSON (with '.gz' it is compressed) for brainstem-nwb
+% and other tools; the returned struct has jsondecode's sanitized field names.
+% export = client.export_project('<project_uuid>', 'file', 'project-export.json.gz');
+% fprintf('%d records\n', export.export_info.record_count);
+% Large projects: 'background', true queues a server job and waits for it.
+% session_export = client.export_session('<session_uuid>', 'background', true);
+
+%% 10. The agent reference
+
+% The server describes its own API and data model in Markdown pages, readable
+% without a token.
+disp(client.agent_reference('index.md'));
+% disp(client.agent_reference('resources/session.md'));

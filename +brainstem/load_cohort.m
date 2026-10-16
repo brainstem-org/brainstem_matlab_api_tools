@@ -3,7 +3,7 @@ function output = load_cohort(varargin)
 %
 %   Parameters: name, id, description, tags,
 %               portal, filter, sort, include, limit, offset, load_all, settings
-%   'tags' takes a numeric tag id; the server does not filter by tag name.
+%   'tags' filters by tag name (sent as filter{tags.name}); records return tags as names.
 %
 %   Examples:
 %     output = load_cohort()
@@ -13,5 +13,5 @@ d = struct('app','stem', 'model','cohort');
 d.include = {'subjects'};
 output = brainstem_convenience_load(d, ...
     {'id','name','description','tags'}, ...
-    {'id','id'; 'name','name.icontains'; 'tags','tags'}, ...
+    {'id','id'; 'name','name.icontains'; 'tags','tags.name'}, ...
     varargin{:});

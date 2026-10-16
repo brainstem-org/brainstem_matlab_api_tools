@@ -21,8 +21,10 @@ The tutorial demonstrates how to:
 - **Updating Entries:** Partially or fully update existing records.
 - **Creating Entries:** Submit new data entries with required fields.
 - **Deleting Entries:** Remove records by UUID.
-- **Loading Public Data:** Access public projects and data using the public portal.
+- **Loading Public Data:** Access public projects and data using the public portal, also anonymously.
 - **Pagination:** Load all records across multiple pages automatically.
+- **Exports:** Download a project or session as versioned JSON (format 2.1).
+- **Agent reference:** Read the server's own description of its API.
 
 ## Authentication
 
@@ -31,8 +33,10 @@ Create a token at [brainstem.org/private/users/tokens/](https://www.brainstem.or
 Tokens are valid for 1 year.
 
 ```matlab
-% Option A: environment variable (set once per shell/session, or in .env / bashrc)
-setenv('BRAINSTEM_TOKEN','<your_token>')
+% Option A: environment variable (set once per shell/session, or in .env / bashrc).
+% BRAINSTEM_API_TOKEN is the variable every BrainSTEM tool reads (Python client,
+% brainstem CLI, brainstem-nwb, agent skills); the older BRAINSTEM_TOKEN still works.
+setenv('BRAINSTEM_API_TOKEN','<your_token>')
 client = BrainstemClient();   % picks it up automatically
 
 % Option B: pass directly
@@ -41,12 +45,19 @@ client = BrainstemClient('token','<your_token>');
 
 > **Custom server URL** (local dev, staging):
 > ```matlab
-> setenv('BRAINSTEM_URL', 'http://localhost:8000/')
+> setenv('BRAINSTEM_API_URL', 'http://localhost:8000/')   % or the older BRAINSTEM_URL
 > client = BrainstemClient();   % uses the URL from the env var
 > % or pass explicitly:
 > client = BrainstemClient('url','http://localhost:8000/', 'token','<your_token>');
 > ```
-> The standalone `brainstem.*` functions also honour `BRAINSTEM_URL`.
+> The standalone `brainstem.*` functions honour the same variables (`brainstem.env_defaults()` shows
+> what they resolve to).
+
+### Public data without logging in
+```matlab
+client = BrainstemClient('anonymous', true);   % sends no token; only portal 'public' works
+projects = client.load('project', 'portal', 'public', 'load_all', true);
+```
 
 ### Interactive login (device flow, desktop MATLAB)
 ```matlab
@@ -82,6 +93,10 @@ client.delete(out.sessions(1).id, 'session');
 | `brainstem.load` | Load records from any BrainSTEM model |
 | `brainstem.save` | Create or update records (POST / PUT / PATCH) |
 | `brainstem.delete` | Delete a record by UUID |
+| `brainstem.export_project` | Download a project's JSON export (format 2.1), directly or as a background job |
+| `brainstem.export_session` | Download one session's JSON export: the content of one NWB file |
+| `brainstem.agent_reference` | Read a page of the server's public agent reference |
+| `brainstem.env_defaults` | Server URL and token resolved from the environment |
 | `brainstem.get_app_from_model` | Map a model name to its API app prefix |
 
 ## Convenience Loaders
@@ -120,7 +135,9 @@ All `load` calls (and the convenience loaders) support:
 | `portal` | `'private'` or `'public'` | `'public'` |
 
 ### Filter operators
-`icontains`, `startswith`, `endswith`, `gt`, `gte`, `lt`, `lte`
+Any operator the server supports, for example `icontains`, `iexact`, `in`, `startswith`, `gt`, `gte`, `lt`,
+`lte`, `isnull` and `range`. The server lists them, with the include, sort and paging syntax, on the
+`query-syntax.md` page of its agent reference (`brainstem.agent_reference('query-syntax.md')`).
 
 Filter a relation by the bare field name: `{'projects', '<uuid>'}` sends `filter{projects}=<uuid>`, which every server accepts. The `filter{<relation>.id}` form fails on many relations on older servers.
 
@@ -138,7 +155,7 @@ Filter a relation by the bare field name: `{'projects', '<uuid>'}` sends `filter
 | `load_equipment` | `name`, `setup` |
 | `load_consumablestock` | `inventory` |
 
-`tags` takes a numeric tag id; the server does not filter by tag name.
+`tags` filters by tag name (sent as `filter{tags.name}`); records return their tags as names. Use `{'tags.name.in', ...}` or `{'tags.name.icontains', ...}` through `filter` for other forms.
 
 ### Lists read with include
 
@@ -148,9 +165,34 @@ Sending a list field (`projects`, `subjects`, `behaviors`, ...) with `save` repl
 
 Every REST resource of the server can be loaded and saved by name, including the specimen-era ones: `specimenset`, `specimen`, `epoch`, `sessiondatastorage`, `experimentalinterface`, `materialusage`, `specimenprocedure`, `specimenlog`, `procedureepisode`, `anatomicalregion`, `anatomicalreference`, `coordinatetransform`, the link tables and the templates. `brainregion` is the deprecated name of `anatomicalregion`: `load`, `save` and `delete` still accept it, with a warning, and use `anatomicalregion`.
 
+### Exports and the agent reference
+
+```matlab
+% One JSON document (format 2.1) with every record of the project you may read.
+export = client.export_project('<project_uuid>');
+export.export_info.record_count
+
+% Keep the original JSON for brainstem-nwb (the returned struct has jsondecode's
+% sanitized field names, e.g. records.stem_project instead of "stem.project").
+client.export_project('<project_uuid>', 'file', 'project-export.json.gz');
+
+% Large projects exceed the server's 30-second request limit: queue a job and wait.
+export = client.export_project('<project_uuid>', 'background', true);
+
+% One session and everything it touches (the content of one NWB file).
+session_export = client.export_session('<session_uuid>');
+
+% The server's own description of its API and data model, written for AI agents.
+disp(client.agent_reference('index.md'))
+disp(client.agent_reference('resources/session.md'))
+```
+
+Exports need read access to the project (or to one of the session's projects) and a server with the
+export API; the agent reference needs a server that publishes it at `<server>/reference/`.
+
 ### Known limitations
 
-- Specimen-era models need a server with the specimen release; older servers answer 404 for them.
+- Specimen-era models, exports and the agent reference need a server with the specimen release; older servers answer 404 for them.
 - `offset` must be a multiple of the page size, and a page holds at most 500 records. Use `load_all` to get everything.
 - Records copied into a new struct lose the `brainstem_included` mark, so `save` cannot warn about them.
 
@@ -189,6 +231,10 @@ client.delete(out.id, 'session');
 % Public data
 public_projects = client.load('project', 'portal', 'public');
 ```
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md).
 
 ## License
 This project is licensed under the MIT License. See the `LICENSE` file for details.
