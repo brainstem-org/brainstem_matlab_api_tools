@@ -14,6 +14,10 @@ function filter = brainstem_apply_field_filters(parameters, extra_fields, filter
 %   Returns the updated filter cell array (appended to parameters.filter).
 
 filter = parameters.filter;
+% A flat {key, value, key, value, ...} filter becomes N×2 so named filters can be appended.
+if ~isempty(filter) && isvector(filter) && mod(numel(filter), 2) == 0
+    filter = reshape(filter, 2, [])';
+end
 
 % Build a quick lookup: field -> filter key
 lookup = containers.Map(filter_map(:,1), filter_map(:,2));

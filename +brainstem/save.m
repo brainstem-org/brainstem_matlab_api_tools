@@ -14,6 +14,16 @@ function output = save(varargin)
 %     method   - 'put' (default, full replace) or 'patch' (partial update)
 %     settings - Settings struct (auto-resolved from BRAINSTEM_TOKEN env var or token cache)
 %
+%   Lists read with include are incomplete:
+%     Sending a list field (projects, subjects, behaviors, ...) replaces the whole
+%     list. A record loaded with 'include' (the load_session, load_subject,
+%     load_project, load_cohort and load_collection defaults) lists only the
+%     related records you may read, so saving such a list drops links you cannot
+%     see. LOAD marks these records with a 'brainstem_included' field; SAVE removes
+%     that field and warns (BrainSTEM:save:partialList) when it sends one of those
+%     lists. Reload the record without include before changing a list field:
+%       s = brainstem.load('model','session','id',uid); s = s.session;
+%
 %   Examples:
 %     % Update an existing session (full replace):
 %     output = brainstem.save('data', session, 'model', 'session');
@@ -39,8 +49,22 @@ if isempty(parameters.settings)
     parameters.settings = brainstem_get_settings();
 end
 
+parameters.model = brainstem_resolve_model(parameters.model);
 if isempty(parameters.app)
     parameters.app = brainstem.get_app_from_model(parameters.model);
+end
+
+% Records loaded with include carry the list fields that hold only readable links.
+if isfield(parameters.data, 'brainstem_included')
+    included = parameters.data.brainstem_included;
+    parameters.data = rmfield(parameters.data, 'brainstem_included');
+    partial = intersect(fieldnames(parameters.data), included);
+    if ~isempty(partial)
+        warning('BrainSTEM:save:partialList', ...
+            ['Saving %s field(s) %s read with include: they list only the records you may read, ' ...
+             'so links you cannot see will be removed. Reload the record without include ' ...
+             'and change that list instead.'], parameters.model, strjoin(partial, ', '));
+    end
 end
 
 % Validate UUID format when an id is present in data

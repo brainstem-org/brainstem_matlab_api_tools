@@ -1,7 +1,7 @@
 function output = load_procedure(varargin)
 % LOAD_PROCEDURE  Load procedure record(s) from BrainSTEM.
 %
-%   Parameters: subject, id, tags,
+%   Parameters: subject, id,
 %               portal, filter, sort, include, limit, offset, load_all, settings
 %
 %   Examples:
@@ -10,6 +10,6 @@ function output = load_procedure(varargin)
 %     output = load_procedure('id', '<uuid>')
 d = struct('app','modules', 'model','procedure');
 output = brainstem_convenience_load(d, ...
-    {'id','subject','tags'}, ...
-    {'id','id'; 'subject','subject.id'; 'tags','tags'}, ...
+    {'id','subject'}, ...
+    {'id','id'; 'subject','subject'}, ...
     varargin{:});
